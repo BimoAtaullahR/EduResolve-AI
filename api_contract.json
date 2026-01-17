@@ -24,17 +24,19 @@
         "method": "GET",
         "path": "/conversations",
         "description": "Mengambil daftar pesan masuk untuk dashboard utama.",
-        "query_params": ["status", "category", "limit"],
         "response_sample": {
           "conversations": [
             {
               "id": "conv-123",
               "student_name": "Budi Setiawan",
               "last_message": "Aplikasi crash saat submit tugas kuis.",
-              "priority_score": 10,
-              "category": "Exam/Assignment",
-              "sentiment": "negative",
               "status": "open",
+              "ai_analysis": {
+                "priority_score": 10,
+                "category": "Exam/Assignment",
+                "sentiment": "negative",
+                "is_processed": true
+              },
               "updated_at": "2026-01-17T10:00:00Z"
             }
           ]
@@ -45,17 +47,19 @@
       "get_conversation_detail": {
         "method": "GET",
         "path": "/conversations/:id",
-        "description": "Detail pesan lengkap dengan ringkasan AI.",
+        "description": "Detail pesan lengkap dengan ringkasan mendalam dari AI.",
         "response_sample": {
           "id": "conv-123",
           "messages": [
-            { "sender": "student", "text": "Halo, saya butuh bantuan kuis." }
+            { "sender": "student", "text": "Halo, saya butuh bantuan kuis.", "timestamp": "..." }
           ],
-          "ai_insight": {
+          "ai_analysis": {
             "summary": "Mahasiswa mengalami kendala teknis saat submit kuis di menit terakhir.",
-            "issue_classification": "Exam/Assignment",
-            "urgency_score": 10,
-            "reason": "Mendekati deadline tugas (< 15 menit)."
+            "category": "Exam/Assignment",
+            "priority_score": 10,
+            "reason": "Mendekati deadline tugas (< 15 menit).",
+            "sentiment": "anxious",
+            "is_processed": true
           }
         }
       },
