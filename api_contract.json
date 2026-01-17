@@ -1,0 +1,98 @@
+{
+  "project_name": "EduResolve AI",
+  "industry_context": "EdTech (Education Technology)",
+  "api_version": "v1.0",
+  "base_url": "https://api.eduresolve.ai/api/v1",
+  "endpoints": {
+    "auth": {
+      "login": {
+        "method": "POST",
+        "path": "/auth/login",
+        "description": "Verifikasi token Firebase untuk sesi agen.",
+        "request_body": {
+          "id_token": "string (Firebase JWT)"
+        },
+        "response_sample": {
+          "status": "success",
+          "token": "string (Internal App JWT)",
+          "user": { "id": "uuid", "name": "Alex", "role": "support_lead" }
+        }
+      }
+    },
+    "inbox": {
+      "get_conversations": {
+        "method": "GET",
+        "path": "/conversations",
+        "description": "Mengambil daftar pesan masuk untuk dashboard utama.",
+        "query_params": ["status", "category", "limit"],
+        "response_sample": {
+          "conversations": [
+            {
+              "id": "conv-123",
+              "student_name": "Budi Setiawan",
+              "last_message": "Aplikasi crash saat submit tugas kuis.",
+              "priority_score": 10,
+              "category": "Exam/Assignment",
+              "sentiment": "negative",
+              "status": "open",
+              "updated_at": "2026-01-17T10:00:00Z"
+            }
+          ]
+        }
+      }
+    },
+    "ai_intelligence": {
+      "get_conversation_detail": {
+        "method": "GET",
+        "path": "/conversations/:id",
+        "description": "Detail pesan lengkap dengan ringkasan AI.",
+        "response_sample": {
+          "id": "conv-123",
+          "messages": [
+            { "sender": "student", "text": "Halo, saya butuh bantuan kuis." }
+          ],
+          "ai_insight": {
+            "summary": "Mahasiswa mengalami kendala teknis saat submit kuis di menit terakhir.",
+            "issue_classification": "Exam/Assignment",
+            "urgency_score": 10,
+            "reason": "Mendekati deadline tugas (< 15 menit)."
+          }
+        }
+      },
+      "get_suggestions": {
+        "method": "GET",
+        "path": "/conversations/:id/suggestions",
+        "description": "Mendapatkan draf jawaban otomatis dari AI.",
+        "response_sample": {
+          "suggestions": [
+            {
+              "tone": "Empathetic",
+              "content": "Kami mengerti kekhawatiran Anda terkait kuis..."
+            },
+            {
+              "tone": "Formal",
+              "content": "Laporan Anda telah diteruskan ke tim IT..."
+            }
+          ]
+        }
+      }
+    },
+    "analytics": {
+      "get_overview": {
+        "method": "GET",
+        "path": "/analytics/overview",
+        "description": "Data statistik untuk dashboard manajerial Alex.",
+        "response_sample": {
+          "issue_distribution": {
+            "Exam": 45,
+            "Payment": 12,
+            "Technical": 30,
+            "Certification": 13
+          },
+          "average_sentiment_score": 0.85,
+          "daily_tickets": [20, 35, 15, 40]
+        }
+      }
+    }
+  }
+}
