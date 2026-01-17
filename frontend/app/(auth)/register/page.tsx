@@ -3,17 +3,115 @@
 import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { signInWithGoogle, signUpWithEmail } from "@/lib/firebase";
+import { useAuth } from "@/app/context/AuthContext";
+import { UserRole, RoleDisplayNames, RoleDescriptions, getDefaultRedirectPath } from "@/types/user";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const { setUserRole } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.CUSTOMER);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Handle Google Sign Up
+  const handleGoogleSignUp = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await signInWithGoogle();
+
+      if (result.success && result.idToken) {
+        console.log("Google Sign-up successful!");
+        console.log("ID Token (JWT) for backend:", result.idToken);
+        console.log("Selected role:", selectedRole);
+
+        // Set the user role
+        setUserRole(selectedRole);
+
+        // TODO: Send ID token + role to your backend
+        // await fetch('/api/auth/register', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({ idToken: result.idToken, role: selectedRole })
+        // });
+
+        // Redirect based on role
+        router.push(getDefaultRedirectPath(selectedRole));
+      } else {
+        setError(result.error || "Sign-up failed. Please try again.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Email Sign Up
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    // Validation
+    if (!fullName || !email || !password) {
+      setError("Please fill in all fields.");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await signUpWithEmail(email, password, fullName);
+
+      if (result.success && result.idToken) {
+        console.log("Email Sign-up successful!");
+        console.log("ID Token (JWT) for backend:", result.idToken);
+        console.log("Selected role:", selectedRole);
+
+        // Set the user role
+        setUserRole(selectedRole);
+
+        // TODO: Send ID token + role to your backend
+        router.push(getDefaultRedirectPath(selectedRole));
+      } else {
+        let errorMessage = result.error || "Sign-up failed. Please try again.";
+        if (errorMessage.includes("email-already-in-use")) {
+          errorMessage = "This email is already registered. Please sign in instead.";
+        } else if (errorMessage.includes("invalid-email")) {
+          errorMessage = "Please enter a valid email address.";
+        } else if (errorMessage.includes("weak-password")) {
+          errorMessage = "Password is too weak. Please use a stronger password.";
+        }
+        setError(errorMessage);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Gradient Background (Empty for now) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-primary-blue to-primary-dark relative overflow-hidden">
-        {/* Decorative circles */}
+      {/* Left Side - Gradient Background */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#52abff] to-[#20578f] relative overflow-hidden">
         <Link href="/" className="absolute top-6 left-6 z-50 cursor-pointer text-xl font-semibold italic text-white">
           EduSkill
         </Link>
@@ -21,9 +119,7 @@ export default function RegisterPage() {
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/5 rounded-full"></div>
         <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-white/5 rounded-full"></div>
 
-        {/* Content placeholder */}
         <div className="flex flex-col justify-center items-start p-16 relative z-10">
-          {/* Tagline */}
           <h2 className="text-4xl font-light text-white leading-snug">
             Start Your Learning
             <br />
@@ -36,37 +132,73 @@ export default function RegisterPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-[#1f2937] mb-2">Create account</h1>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Create account</h1>
+            <p className="text-gray-500 text-sm">Join thousands of learners today!</p>
+          </div>
+
+          {/* Error Message */}
+          {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">{error}</div>}
+
+          {/* Role Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">I am a...</label>
+            <div className="grid grid-cols-2 gap-3">
+              {Object.values(UserRole).map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setSelectedRole(role)}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${selectedRole === role ? "border-[#52abff] bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedRole === role ? "border-[#52abff]" : "border-gray-300"}`}>
+                      {selectedRole === role && <div className="w-2 h-2 rounded-full bg-[#52abff]"></div>}
+                    </div>
+                    <span className="font-medium text-gray-800 text-sm">{RoleDisplayNames[role]}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 ml-6">{RoleDescriptions[role]}</p>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Social Login Buttons */}
-          <div className="flex gap-4 mb-6 cursor-pointer flex-col sm:flex-row">
-            <button className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border cursor-pointer border-gray-200 rounded-lg hover:bg-black hover:text-white transition-colors text-sm font-medium hover:text-white text-gray-700">
+          <div className="flex gap-4 mb-5 flex-col sm:flex-row">
+            <button
+              onClick={handleGoogleSignUp}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <FcGoogle size={24} />
-              Sign up with Google
+              {loading ? "Signing up..." : "Sign up with Google"}
             </button>
 
-            <button className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border cursor-pointer border-gray-200 rounded-lg hover:bg-black hover:text-white transition-colors text-sm font-medium hover:text-white text-gray-700">
+            <button
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <FaFacebook size={24} color="#387fc5" />
-              Sign up with Facebook
+              Facebook
             </button>
           </div>
 
           {/* Divider */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-5">
             <div className="flex-1 h-px bg-gray-200"></div>
             <span className="text-sm text-gray-400">Or</span>
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
           {/* Registration Form */}
-          <form className="space-y-5">
+          <form onSubmit={handleEmailSignUp} className="space-y-4">
             {/* Full Name */}
             <div>
               <input
                 type="text"
                 placeholder="Full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#52abff] focus:ring-1 focus:ring-[#52abff] transition-colors"
               />
             </div>
@@ -76,6 +208,8 @@ export default function RegisterPage() {
               <input
                 type="email"
                 placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#52abff] focus:ring-1 focus:ring-[#52abff] transition-colors"
               />
             </div>
@@ -85,6 +219,8 @@ export default function RegisterPage() {
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#52abff] focus:ring-1 focus:ring-[#52abff] transition-colors"
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -107,8 +243,8 @@ export default function RegisterPage() {
             </div>
 
             {/* Submit Button */}
-            <button type="submit" className="w-full py-3.5 bg-[#52abff] hover:bg-[#20578f] text-white font-semibold rounded-lg transition-colors duration-200">
-              Create Account
+            <button type="submit" disabled={loading} className="w-full py-3.5 bg-[#52abff] hover:bg-[#20578f] text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+              {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
 
