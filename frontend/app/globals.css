@@ -1,26 +1,67 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Register Font */
+  --font-jakarta: var(--font-plus-jakarta-sans);
+
+  /* Register Colors as Utility Classes */
+  --color-primary-blue: #52abff;
+  --color-primary-dark: #20578f;
+  --color-accent-yellow: #facc15;
+  --color-text-dark: #1f2937;
+  --color-text-light: #6b7280;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --font-jakarta: var(--font-plus-jakarta-sans);
+  --color-primary-blue: #52abff;
+  --color-primary-dark: #20578f;
+  --color-accent-yellow: #facc15;
+  --color-text-dark: #1f2937;
+  --color-text-light: #6b7280;
+  --color-background: #ffffff;
+  --color-background-dark: #20578f;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-jakarta);
+  overflow-x: hidden;
+  background-color: #ffffff;
+  color: var(--color-text-dark);
+}
+
+/* Custom Classes */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+.float-animation-delayed {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.float-animation-delayed-2 {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 2s;
 }
