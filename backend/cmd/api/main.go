@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/BimoAtaullahR/ai-customer-support/internal/config"
+	"github.com/BimoAtaullahR/ai-customer-support/internal/middleware"
 	"github.com/BimoAtaullahR/ai-customer-support/pkg/firebase"
 	"github.com/gin-gonic/gin"
 )
@@ -55,7 +56,8 @@ func main() {
 		//endpoint inbox & conversations
 		conversations := v1.Group("/conversations")
 		{
-			conversations.GET("", func(c *gin.Context) {
+			authClient, _ := app.Auth(ctx)
+			conversations.GET("", middleware.AuthMiddleware(authClient), func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"message": "Fetch conversations ready"})
 			})
 			conversations.GET("/:id", func(c *gin.Context) {
