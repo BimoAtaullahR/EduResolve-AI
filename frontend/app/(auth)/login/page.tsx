@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { signInWithGoogle, signInWithEmail } from "@/lib/firebase";
+import { useAuth } from "@/app/context/AuthContext";
+import { UserRole, getDefaultRedirectPath } from "@/types/user";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { userRole } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,20 +26,22 @@ export default function LoginPage() {
     try {
       const result = await signInWithGoogle();
 
-      if (result.success && result.idToken) {
+      if (result.success && result.idToken && result.user) {
         console.log("Login successful!");
         console.log("ID Token (JWT) for backend:", result.idToken);
+        console.log("User UID:", result.user.uid);
 
-        // TODO: Send ID token to your backend
-        // Example:
-        // await fetch('/api/auth/login', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ idToken: result.idToken })
-        // });
+        // Role is automatically loaded from localStorage by AuthContext
+        // based on the user's UID after Firebase auth completes
+        // Give AuthContext a moment to load the role
+        setTimeout(() => {
+          // Get the stored role for this user
+          const storedRole = localStorage.getItem(`eduskill_user_role_${result.user!.uid}`);
+          const role = (storedRole as UserRole) || UserRole.CUSTOMER;
 
-        // Redirect to dashboard or home
-        router.push("/");
+          console.log("User role from storage:", role);
+          router.push(getDefaultRedirectPath(role));
+        }, 100);
       } else {
         setError(result.error || "Login failed. Please try again.");
       }
@@ -64,12 +68,18 @@ export default function LoginPage() {
     try {
       const result = await signInWithEmail(email, password);
 
-      if (result.success && result.idToken) {
+      if (result.success && result.idToken && result.user) {
         console.log("Login successful!");
         console.log("ID Token (JWT) for backend:", result.idToken);
 
-        // TODO: Send ID token to your backend
-        router.push("/");
+        // Get the stored role for this user
+        setTimeout(() => {
+          const storedRole = localStorage.getItem(`eduskill_user_role_${result.user!.uid}`);
+          const role = (storedRole as UserRole) || UserRole.CUSTOMER;
+
+          console.log("User role from storage:", role);
+          router.push(getDefaultRedirectPath(role));
+        }, 100);
       } else {
         setError(result.error || "Login failed. Please check your credentials.");
       }
@@ -105,7 +115,7 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="text-3xl font-bold text-[#1f2937] mb-2">Login</h1>
             <p className="text-gray-500 text-sm">Welcome back! Please sign in to continue.</p>
           </div>
@@ -114,34 +124,26 @@ export default function LoginPage() {
           {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">{error}</div>}
 
           {/* Social Login Buttons */}
-          <div className="flex gap-4 mb-6 flex-col sm:flex-row">
+          <div className="flex gap-4 mb-5 flex-col sm:flex-row">
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg transition-colors text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:text-white hover:bg-black/85"
             >
               <FcGoogle size={24} />
-              {loading ? "Signing in..." : "Sign in with Google"}
-            </button>
-
-            <button
-              disabled={loading}
-              className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FaFacebook size={24} color="#387fc5" />
-              Sign in with Facebook
+              {loading ? "Signing in..." : "Login with Google"}
             </button>
           </div>
 
           {/* Divider */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-5">
             <div className="flex-1 h-px bg-gray-200"></div>
             <span className="text-sm text-gray-400">Or</span>
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleEmailSignIn} className="space-y-5">
+          <form onSubmit={handleEmailSignIn} className="space-y-4">
             {/* Email Address */}
             <div>
               <input
@@ -189,7 +191,11 @@ export default function LoginPage() {
             </div>
 
             {/* Submit Button */}
-            <button type="submit" disabled={loading} className="w-full py-3.5 bg-[#52abff] hover:bg-[#20578f] text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 bg-[#52abff] hover:bg-[#20578f] text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>

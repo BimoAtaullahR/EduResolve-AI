@@ -4,11 +4,11 @@ import Image from "next/image";
 
 export default function Hero() {
   return (
-    <section className="relative w-full min-h-screen bg-gradient-to-b from-primary-blue  to-primary-dark overflow-hidden">
+    <section className="relative w-full rounded-bl-4xl rounded-br-[28rem] bg-gradient-to-b from-primary-blue to-primary-dark overflow-hidden">
       {/* Background Decorative Circles */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-white/10"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/10"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-white/30"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/20"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-white/10"></div>
       </div>
 
@@ -17,7 +17,6 @@ export default function Hero() {
         {/* Badge */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-            <span className="text-lg">📚</span>
             <span className="text-sm font-semibold text-gray-700">Learn From the Top Experts</span>
           </div>
         </div>
@@ -35,7 +34,7 @@ export default function Hero() {
         <p className="text-center text-white/80 text-base md:text-lg max-w-2xl mx-auto mb-8">
           Join thousands of learners gaining new skills, advancing careers
           <br className="hidden md:block" />
-          and shaping a better tomorrow—one lesson at a time.
+          and shaping a better tomorrow, one lesson at a time.
         </p>
 
         {/* Search Bar */}
@@ -53,15 +52,6 @@ export default function Hero() {
         {/* Hero Image & Decorative Elements */}
         <div className="relative flex justify-center items-end">
           {/* Sun Decoration - Left */}
-          <div className="absolute left-10 top-10 md:left-20 md:top-20">
-            <div className="relative">
-              <div className="w-12 h-12 bg-yellow-400 rounded-full"></div>
-              <div className="absolute -top-2 -right-2 w-2 h-8 bg-yellow-400 rotate-45"></div>
-              <div className="absolute -top-2 -left-2 w-2 h-8 bg-yellow-400 -rotate-45"></div>
-              <div className="absolute -bottom-2 -right-2 w-2 h-8 bg-yellow-400 rotate-[135deg]"></div>
-              <div className="absolute -bottom-2 -left-2 w-2 h-8 bg-yellow-400 -rotate-[135deg]"></div>
-            </div>
-          </div>
 
           {/* Star Decoration - Right */}
           <div className="absolute right-10 top-0 md:right-32 md:top-10">

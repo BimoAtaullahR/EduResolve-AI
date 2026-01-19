@@ -5,9 +5,11 @@ import { User } from "firebase/auth";
 import { onAuthStateChange, signOut as firebaseSignOut, getIdToken } from "@/lib/firebase";
 import { UserRole, UserProfile, getDefaultRedirectPath } from "@/types/user";
 
-// Storage key for user role (frontend demo - in production, get from backend)
-const USER_ROLE_STORAGE_KEY = "eduskill_user_role";
-const USER_PROFILE_STORAGE_KEY = "eduskill_user_profile";
+// Storage key prefix for user role (stored per user UID for persistence)
+const USER_ROLE_STORAGE_PREFIX = "eduskill_user_role_";
+
+// Helper to get role storage key for a specific user
+const getRoleStorageKey = (uid: string) => `${USER_ROLE_STORAGE_PREFIX}${uid}`;
 
 interface AuthContextType {
   user: User | null;
@@ -17,7 +19,7 @@ interface AuthContextType {
   idToken: string | null;
   signOut: () => Promise<void>;
   refreshToken: () => Promise<string | null>;
-  setUserRole: (role: UserRole) => void;
+  setUserRole: (role: UserRole, uid?: string) => void;
   getRedirectPath: () => string;
 }
 
@@ -34,25 +36,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [idToken, setIdToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user role from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedRole = localStorage.getItem(USER_ROLE_STORAGE_KEY);
-      if (storedRole && Object.values(UserRole).includes(storedRole as UserRole)) {
-        setUserRoleState(storedRole as UserRole);
-      }
-
-      const storedProfile = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
-      if (storedProfile) {
-        try {
-          setUserProfile(JSON.parse(storedProfile));
-        } catch {
-          // Invalid JSON, ignore
-        }
-      }
-    }
-  }, []);
-
   useEffect(() => {
     // Subscribe to auth state changes
     const unsubscribe = onAuthStateChange(async (firebaseUser) => {
@@ -63,27 +46,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const token = await firebaseUser.getIdToken();
         setIdToken(token);
 
-        // Create/update user profile
-        const storedRole = localStorage.getItem(USER_ROLE_STORAGE_KEY) as UserRole;
+        // Get stored role for this specific user (by UID)
+        const storedRole = localStorage.getItem(getRoleStorageKey(firebaseUser.uid));
+        const role = storedRole && Object.values(UserRole).includes(storedRole as UserRole) ? (storedRole as UserRole) : UserRole.CUSTOMER; // Default to customer if no role stored
+
+        setUserRoleState(role);
+
+        // Create user profile
         const profile: UserProfile = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
-          role: storedRole || UserRole.CUSTOMER,
+          role: role,
           createdAt: new Date().toISOString(),
         };
         setUserProfile(profile);
-        localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(profile));
 
-        if (!storedRole) {
-          setUserRoleState(UserRole.CUSTOMER);
-          localStorage.setItem(USER_ROLE_STORAGE_KEY, UserRole.CUSTOMER);
-        }
+        console.log(`User ${firebaseUser.uid} logged in with role: ${role}`);
       } else {
         setIdToken(null);
         setUserProfile(null);
-        // Don't clear role on sign out to preserve for next login
+        setUserRoleState(null);
       }
 
       setLoading(false);
@@ -93,18 +77,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => unsubscribe();
   }, []);
 
-  // Set user role (called during registration)
-  const setUserRole = (role: UserRole) => {
-    setUserRoleState(role);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(USER_ROLE_STORAGE_KEY, role);
+  // Set user role (stored per user UID)
+  const setUserRole = (role: UserRole, uid?: string) => {
+    const userId = uid || user?.uid;
 
-      // Update profile with new role
-      if (userProfile) {
-        const updatedProfile = { ...userProfile, role };
-        setUserProfile(updatedProfile);
-        localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
-      }
+    if (!userId) {
+      console.warn("Cannot set role: No user ID available");
+      return;
+    }
+
+    setUserRoleState(role);
+
+    // Store role for this specific user (persists across logout/login)
+    localStorage.setItem(getRoleStorageKey(userId), role);
+    console.log(`Role set for user ${userId}: ${role}`);
+
+    // Update profile with new role
+    if (userProfile) {
+      const updatedProfile = { ...userProfile, role };
+      setUserProfile(updatedProfile);
     }
   };
 
@@ -120,17 +111,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return token;
   };
 
-  // Sign out
+  // Sign out (don't clear role - it's tied to user ID, not session)
   const signOut = async () => {
     await firebaseSignOut();
     setUser(null);
     setIdToken(null);
     setUserProfile(null);
-    // Clear stored data
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(USER_ROLE_STORAGE_KEY);
-      localStorage.removeItem(USER_PROFILE_STORAGE_KEY);
-    }
+    setUserRoleState(null);
+    // Note: We do NOT clear the role from localStorage
+    // The role is tied to the user's UID and should persist
   };
 
   const value: AuthContextType = {

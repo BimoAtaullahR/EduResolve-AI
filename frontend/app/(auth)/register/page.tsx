@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { signInWithGoogle, signUpWithEmail } from "@/lib/firebase";
-import { useAuth } from "@/app/context/AuthContext";
+import { registerWithBackend } from "@/lib/api";
 import { UserRole, RoleDisplayNames, RoleDescriptions, getDefaultRedirectPath } from "@/types/user";
+
+// Storage key prefix for user role (cached locally after backend confirms)
+const USER_ROLE_STORAGE_PREFIX = "eduskill_user_role_";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setUserRole } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,34 +22,54 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Save role to localStorage (cache after backend confirms)
+  const cacheUserRole = (uid: string, role: string) => {
+    localStorage.setItem(`${USER_ROLE_STORAGE_PREFIX}${uid}`, role);
+  };
+
   // Handle Google Sign Up
   const handleGoogleSignUp = async () => {
     setLoading(true);
     setError(null);
 
     try {
+      // Step 1: Authenticate with Google via Firebase
       const result = await signInWithGoogle();
 
-      if (result.success && result.idToken) {
-        console.log("Google Sign-up successful!");
-        console.log("ID Token (JWT) for backend:", result.idToken);
-        console.log("Selected role:", selectedRole);
-
-        // Set the user role
-        setUserRole(selectedRole);
-
-        // TODO: Send ID token + role to your backend
-        // await fetch('/api/auth/register', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ idToken: result.idToken, role: selectedRole })
-        // });
-
-        // Redirect based on role
-        router.push(getDefaultRedirectPath(selectedRole));
-      } else {
-        setError(result.error || "Sign-up failed. Please try again.");
+      if (!result.success || !result.idToken || !result.user) {
+        setError(result.error || "Google sign-up failed. Please try again.");
+        setLoading(false);
+        return;
       }
+
+      console.log("Google Sign-up successful!");
+      console.log("User UID:", result.user.uid);
+      console.log("Selected role:", selectedRole);
+
+      // Step 2: Register with backend (send ID token + role)
+      const backendResult = await registerWithBackend({
+        idToken: result.idToken,
+        role: selectedRole,
+        name: result.user.displayName || "",
+        email: result.user.email || "",
+      });
+
+      if (!backendResult.success) {
+        // If backend fails, still cache locally for demo purposes
+        console.warn("Backend registration failed:", backendResult.error);
+        cacheUserRole(result.user.uid, selectedRole);
+
+        // Show warning but still allow redirect
+        console.log("Falling back to local storage");
+      } else {
+        console.log("Backend registration successful:", backendResult.data);
+        // Cache the role from backend response
+        const userRole = backendResult.data?.user?.role || selectedRole;
+        cacheUserRole(result.user.uid, userRole);
+      }
+
+      // Redirect based on role
+      router.push(getDefaultRedirectPath(selectedRole));
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error(err);
@@ -77,19 +98,10 @@ export default function RegisterPage() {
     }
 
     try {
+      // Step 1: Create user with Firebase
       const result = await signUpWithEmail(email, password, fullName);
 
-      if (result.success && result.idToken) {
-        console.log("Email Sign-up successful!");
-        console.log("ID Token (JWT) for backend:", result.idToken);
-        console.log("Selected role:", selectedRole);
-
-        // Set the user role
-        setUserRole(selectedRole);
-
-        // TODO: Send ID token + role to your backend
-        router.push(getDefaultRedirectPath(selectedRole));
-      } else {
+      if (!result.success || !result.idToken || !result.user) {
         let errorMessage = result.error || "Sign-up failed. Please try again.";
         if (errorMessage.includes("email-already-in-use")) {
           errorMessage = "This email is already registered. Please sign in instead.";
@@ -99,7 +111,32 @@ export default function RegisterPage() {
           errorMessage = "Password is too weak. Please use a stronger password.";
         }
         setError(errorMessage);
+        setLoading(false);
+        return;
       }
+
+      console.log("Email Sign-up successful!");
+      console.log("User UID:", result.user.uid);
+
+      // Step 2: Register with backend
+      const backendResult = await registerWithBackend({
+        idToken: result.idToken,
+        role: selectedRole,
+        name: fullName,
+        email: email,
+      });
+
+      if (!backendResult.success) {
+        console.warn("Backend registration failed:", backendResult.error);
+        cacheUserRole(result.user.uid, selectedRole);
+      } else {
+        console.log("Backend registration successful:", backendResult.data);
+        const userRole = backendResult.data?.user?.role || selectedRole;
+        cacheUserRole(result.user.uid, userRole);
+      }
+
+      // Redirect based on role
+      router.push(getDefaultRedirectPath(selectedRole));
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error(err);
@@ -168,18 +205,10 @@ export default function RegisterPage() {
             <button
               onClick={handleGoogleSignUp}
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg transition-colors text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:text-white hover:bg-black/85"
             >
               <FcGoogle size={24} />
               {loading ? "Signing up..." : "Sign up with Google"}
-            </button>
-
-            <button
-              disabled={loading}
-              className="flex-1 flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FaFacebook size={24} color="#387fc5" />
-              Facebook
             </button>
           </div>
 
@@ -243,7 +272,11 @@ export default function RegisterPage() {
             </div>
 
             {/* Submit Button */}
-            <button type="submit" disabled={loading} className="w-full py-3.5 bg-[#52abff] hover:bg-[#20578f] text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 bg-[#52abff] hover:bg-[#20578f] text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:text-white"
+            >
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
