@@ -4,16 +4,12 @@ import Image from "next/image";
 
 export default function Hero() {
   return (
-    <section className="relative w-full rounded-bl-4xl rounded-br-[28rem] bg-gradient-to-b from-primary-blue to-primary-dark overflow-hidden">
+    <section className="relative w-full bg-gradient-to-b from-primary-blue to-primary-dark overflow-hidden">
       {/* Background Decorative Circles */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-white/30"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/20"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-white/10"></div>
-      </div>
+      <div className="absolute inset-0 overflow-hidden"></div>
 
       {/* Main Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 lg:px-20 pt-8 pb-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 lg:px-20 pt-8">
         {/* Badge */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
@@ -22,7 +18,11 @@ export default function Hero() {
         </div>
 
         {/* Headline */}
-        <div className="text-center mb-6">
+
+        <div className="relative text-center mb-6">
+          <div className="absolute top-[-20] left-30 w-20 h-20">
+            <Image src="/assets/images/hero-2.png" fill alt="Background decoration" className="object-contain z-10" priority />
+          </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
             <span className="italic font-light">Learn Anywhere, Anytime</span>
             <br />
@@ -38,7 +38,7 @@ export default function Hero() {
         </p>
 
         {/* Search Bar */}
-        <div className="flex justify-center mb-12">
+        <div className="flex justify-center ">
           <div className="relative w-full max-w-md">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +50,7 @@ export default function Hero() {
         </div>
 
         {/* Hero Image & Decorative Elements */}
-        <div className="relative flex justify-center items-end">
+        <div className="relative flex justify-center items-end max-h-[400px]">
           {/* Sun Decoration - Left */}
 
           {/* Star Decoration - Right */}
@@ -61,8 +61,8 @@ export default function Hero() {
           </div>
 
           {/* Rating Card - Left */}
-          <div className="absolute left-0 bottom-20 md:left-10 md:bottom-32 z-20">
-            <div className="bg-white rounded-2xl p-4 shadow-xl w-48">
+          <div className="hidden sm:absolute sm:block left-0 bottom-20 md:left-10 md:bottom-32 z-20">
+            <div className="bg-white rounded-2xl p-4 shadow-xl w-max">
               <div className="text-3xl font-bold text-gray-900 mb-1">4.8</div>
               <div className="flex items-center gap-1 mb-2">
                 {[1, 2, 3, 4].map((i) => (
@@ -92,7 +92,7 @@ export default function Hero() {
           </div>
 
           {/* Stats Card - Right */}
-          <div className="absolute right-0 bottom-32 md:right-10 md:bottom-40 z-20">
+          <div className="hidden sm:absolute sm:block right-0 bottom-32 md:right-10 md:bottom-40 z-20">
             <div className="bg-white rounded-2xl p-4 shadow-xl w-56">
               {/* Avatar Group */}
               <div className="flex -space-x-2 mb-3">
@@ -111,9 +111,16 @@ export default function Hero() {
             </div>
           </div>
 
+          {/* Background Image */}
+
+          {/* Background Image */}
+          <div className="absolute bottom-0 w-[900px] h-[900px] z-0">
+            <Image src="/assets/images/bg-hero1.png" width={700} height={600} alt="Background decoration" className="absolute bottom-0 left-1/2 -translate-x-1/2 object-contain" priority />
+          </div>
+
           {/* Hero Person Image */}
-          <div className="relative w-80 h-96 md:w-96 md:h-[500px]">
-            <Image src="/hero-student.png" alt="Happy student with books" fill className="object-contain object-bottom" priority />
+          <div className="relative bottom-0 w-80 h-96 md:w-96 md:h-[500px]">
+            <Image src="/assets/images/hero-girl.png" width={600} height={600} alt="Happy student with books" className="object-cover bottom-0 absolute" priority />
           </div>
         </div>
       </div>

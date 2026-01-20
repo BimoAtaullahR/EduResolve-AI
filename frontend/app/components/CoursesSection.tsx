@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Star, Clock, BookOpen, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 // Course type
 interface Course {
@@ -25,7 +26,7 @@ const courses: Course[] = [
     id: 1,
     title: "Learn Figma from Basic",
     author: "purepearl studio",
-    image: "/images/courses/course-1.jpg",
+    image: "/assets/images/course-1.jpg",
     rating: 4.5,
     level: "Beginner",
     lessons: 17,
@@ -38,7 +39,7 @@ const courses: Course[] = [
     id: 2,
     title: "Web Development Bootcamp",
     author: "devhub",
-    image: "/images/courses/course-2.jpg",
+    image: "/assets/images/course-2.jpg",
     rating: 4.5,
     level: "All Levels",
     lessons: 28,
@@ -51,7 +52,7 @@ const courses: Course[] = [
     id: 3,
     title: "Webflow for Beginners",
     author: "finvision",
-    image: "/images/courses/course-3.jpg",
+    image: "/assets/images/course-3.jpg",
     rating: 4.5,
     level: "Beginner",
     lessons: 25,
@@ -64,7 +65,7 @@ const courses: Course[] = [
     id: 4,
     title: "Learn Framer from Basic",
     author: "smartpath",
-    image: "/images/courses/course-4.jpg",
+    image: "/assets/images/course-4.jpg",
     rating: 4.5,
     level: "Beginner",
     lessons: 20,
@@ -77,7 +78,7 @@ const courses: Course[] = [
     id: 5,
     title: "Digital Marketing Essentials",
     author: "market360",
-    image: "/images/courses/course-5.jpg",
+    image: "/assets/images/course-5.jpg",
     rating: 4.5,
     level: "All Levels",
     lessons: 18,
@@ -90,7 +91,7 @@ const courses: Course[] = [
     id: 6,
     title: "English for Daily Conversations",
     author: "languageflow",
-    image: "/images/courses/course-6.jpg",
+    image: "/assets/images/course-6.jpg",
     rating: 4.5,
     level: "Intermediate",
     lessons: 15,
@@ -114,7 +115,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col">
       {/* Course Image */}
-      <div className="relative h-44 w-full bg-gray-200">
+      <div className="relative h-60 w-full bg-gray-200 rounded-b-4xl overflow-hidden">
         {/* Placeholder - User will add image */}
         {course.image ? (
           <Image src={course.image} alt={course.title} fill className="object-cover" />
@@ -168,7 +169,9 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
             <span className="text-xl font-bold text-gray-900">${course.price.toFixed(2)}</span>
             <span className="text-xs text-gray-400">/lifetime</span>
           </div>
-          <button className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-full hover:bg-blue-50 transition-colors">Enroll Now</button>
+          <Link href="/login">
+            <button className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-full hover:bg-blue-50 transition-colors cursor-pointer">Enroll Now</button>
+          </Link>
         </div>
       </div>
     </div>

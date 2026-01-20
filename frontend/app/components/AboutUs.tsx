@@ -40,7 +40,7 @@ const WhyLearnersSection: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">Why Thousands of Learners Trust Us</h1>
+          <h1 className="text-5xl md:text-5xl font-bold text-gray-900 mb-6">Why Thousands of Learners Trust Us</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">Join a growing community of learners gaining real skills through expert-led, high-quality courses — built with care, trust, and transparency.</p>
         </div>
 
@@ -51,7 +51,7 @@ const WhyLearnersSection: React.FC = () => {
             icon={<Users className="w-7 h-7 text-white" />}
             title="Expert Trainers"
             description="Learn from real industry professionals with years of experience and practical knowledge."
-            image="/images/trainer-1.jpg"
+            image="/assets/images/girl-student (1).png"
             imagePosition="top"
           />
 
