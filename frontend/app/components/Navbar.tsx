@@ -1,29 +1,45 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const navLinks = [
   { name: "Home", href: "/" },
+  { name: "About Us", href: "#about" },
   { name: "Courses", href: "#courses" },
   { name: "Instructors", href: "#instructors" },
   { name: "Blog", href: "#blog" },
-  { name: "About Us", href: "#about" },
   { name: "Contact", href: "#contact" },
 ];
 
 export default function Navbar() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="w-full py-4 px-6 md:px-12 lg:px-20 bg-primary-blue">
+    <header className={`fixed z-[1000] w-full py-4 px-6 md:px-12 lg:px-20 transition-all duration-300 ${isScrolled ? "bg-white-blue/60 backdrop-blur-md shadow-lg" : "bg-transparent"}`}>
       <nav className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-semibold italic text-white">EduSkill</span>
+          <span className={`text-xl font-semibold italic ${isScrolled ? "text-black" : "text-white"}`}>EduSkill</span>
         </Link>
 
         {/* Navigation Links - Desktop */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <Link key={link.name} href={link.href} className="text-white text-sm font-medium hover:text-blue-600 transition-colors duration-200">
+            <Link key={link.name} href={link.href} className={` text-sm font-medium hover:text-blue-200 transition-colors duration-200 ${isScrolled ? "text-black" : "text-white"}`}>
               {link.name}
             </Link>
           ))}
@@ -49,7 +65,7 @@ export default function Navbar() {
         </Link>
 
         {/* Mobile Menu Button */}
-        <button className="md:hidden text-gray-700 p-2">
+        <button className="md:hidden text-white p-2">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>

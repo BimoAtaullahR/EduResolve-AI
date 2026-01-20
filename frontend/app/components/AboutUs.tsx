@@ -12,22 +12,23 @@ interface FeatureCardProps {
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, image, imagePosition = "top" }) => {
   return (
-    <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300">
+    <div className="flex flex-col gap-6.5 bg-white rounded-3xl overflow-hidden hover:shadow-lg duration-300">
       {image && imagePosition === "top" && (
-        <div className="relative h-64 w-full">
-          <Image src={image} alt={title} fill className="object-cover" />
+        <div className="relative h-104 w-full">
+          <Image src={image} alt={title} fill className="object-cover rounded-b-4xl" />
         </div>
       )}
-
-      <div className="p-8">
+      <div className="p-8 rounded-3xl bg-white-blue">
         <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-500 rounded-full mb-4">{icon}</div>
         <h3 className="text-2xl font-bold text-gray-900 mb-3">{title}</h3>
         <p className="text-gray-600 leading-relaxed">{description}</p>
       </div>
 
       {image && imagePosition === "bottom" && (
-        <div className="relative h-64 w-full">
-          <Image src={image} alt={title} fill className="object-cover" />
+        <div>
+          <div className="relative h-104 w-full rounded-t-3xl overflow-hidden">
+            <Image src={image} alt={title} fill className="object-cover" />
+          </div>
         </div>
       )}
     </div>
@@ -36,7 +37,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, ima
 
 const WhyLearnersSection: React.FC = () => {
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-gray-50 to-white">
+    <section id="about" className="py-20 px-4 bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
@@ -56,18 +57,33 @@ const WhyLearnersSection: React.FC = () => {
           />
 
           {/* Global Community */}
-          <FeatureCard
+          {/* <FeatureCard
             icon={<Globe className="w-7 h-7 text-white" />}
             title="Global Community"
             description="Connect, share, and grow with thousands of learners from around the world—exchange ideas, collaborate on goals, and be part of a supportive learning journey."
-          />
+            image="/assets/images/about-bg.png"
+            imagePosition="top"
+          /> */}
+
+          <div className=" bg-white rounded-3xl overflow-hidden hover:shadow-lg duration-300">
+            <div className="relative h-104 w-full">
+              <Image src="/assets/images/about-bg.png" alt="Global Community" fill className="object-cover" />
+            </div>
+            <div className="p-8  bg-white-blue">
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-500 rounded-full mb-4">
+                <Globe className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Global Community</h3>
+              <p className="text-gray-600 leading-relaxed">Connect, share, and grow with thousands of learners from around the world—exchange ideas, collaborate on goals, and be part of a supportive learning journey.</p>
+            </div>
+          </div>
 
           {/* Flexible Learning */}
           <FeatureCard
             icon={<BookOpen className="w-7 h-7 text-white" />}
             title="Flexible Learning Experience"
             description="Learn anytime, anywhere — at your own pace, on your own terms, with complete control over how."
-            image="/images/student-learning.jpg"
+            image="/assets/images/flexible-learn.jpg"
             imagePosition="bottom"
           />
         </div>

@@ -102,7 +102,7 @@ const courses: Course[] = [
   },
 ];
 
-const categories = ["All courses", "UI/UX Design", "Development", "Digital Marketing", "Language Learning", "Business Consulting"];
+const categories = ["All courses", "UI/UX Design", "Development", "Digital Marketing", "Language Learning"];
 
 // Level badge colors
 const levelColors = {
@@ -200,7 +200,7 @@ const CoursesSection: React.FC = () => {
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${activeCategory === category ? "bg-blue-500 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}
+              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${activeCategory === category ? "bg-blue-500 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}
             >
               {category}
             </button>

@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export default function Hero() {
   return (
-    <section className="relative w-full bg-gradient-to-b from-primary-blue to-primary-dark overflow-hidden">
+    <section className="relative w-full pt-20 bg-gradient-to-b from-primary-blue to-primary-dark overflow-hidden">
       {/* Background Decorative Circles */}
       <div className="absolute inset-0 overflow-hidden"></div>
 
