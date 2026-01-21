@@ -5,6 +5,23 @@
   "base_url": "https://api.eduresolve.ai/api/v1",
   "endpoints": {
     "auth": {
+      "register": {
+        "method": "POST",
+        "path": "/auth/register",
+        "description": "Mendaftarkan user baru dan menyimpan rolenya di database.",
+        "request_body": {
+          "idToken": "string",
+          "name": "string",
+          "email": "string",
+          "role": "string"
+        },
+        "response_sample": {
+          "success": true,
+          "data": {
+            "user": { "uid": "...", "email": "alex@gmail.com", "name": "Alex", "role": "support_lead" }
+          }
+        }
+      },
       "login": {
         "method": "POST",
         "path": "/auth/login",
@@ -13,9 +30,10 @@
           "id_token": "string (Firebase JWT)"
         },
         "response_sample": {
-          "status": "success",
-          "token": "string (Internal App JWT)",
-          "user": { "id": "uuid", "name": "Alex", "role": "support_lead" }
+          "success": true,
+          "data": {
+            "user": { "uid": "...", "email": "alex@gmail.com", "name": "Alex", "role": "support_lead" }
+          }
         }
       }
     },
