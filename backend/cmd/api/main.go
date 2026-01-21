@@ -5,15 +5,22 @@ import (
 	"net/http"
 
 	"github.com/BimoAtaullahR/ai-customer-support/internal/config"
+	"github.com/BimoAtaullahR/ai-customer-support/internal/handler"
 	"github.com/BimoAtaullahR/ai-customer-support/internal/middleware"
 	"github.com/BimoAtaullahR/ai-customer-support/internal/model"
 	"github.com/BimoAtaullahR/ai-customer-support/internal/service"
 	"github.com/BimoAtaullahR/ai-customer-support/pkg/ai"
 	"github.com/BimoAtaullahR/ai-customer-support/pkg/firebase"
 	"github.com/gin-gonic/gin"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Peringatan: File .env tidak ditemukan, menggunakan env system")
+	}
 	//muat konfigurasi (dari .env)
 	cfg := config.LoadFirebaseConfig()
 	if cfg.ServiceAccountPath == "" {
@@ -60,14 +67,21 @@ func main() {
 		c.Next()
 	})
 
+	//inisialisasi auth client
+	authClient, _ := app.Auth(ctx)
+
+	//inisialisasi handler auth
+	authHandler := handler.NewAuthHandler(authClient, firestoreClient)
+
 	//grouping API sesuai contract
 	v1 := r.Group("/api/v1")
 	{
 		//endpoint auth
-		v1.POST("/auth/login", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"message": "Login endpoint ready"})
-		})
-
+		authGroup := v1.Group("/auth")
+		{
+			authGroup.POST("/register", authHandler.Register)
+			authGroup.POST("/login", authHandler.Login)
+		}
 		//endpoint inbox & conversations
 		conversations := v1.Group("/conversations")
 		{
@@ -98,7 +112,7 @@ func main() {
 	}
 
 	//menjalankan server
-	port := "8080"
+	port := ":8080"
 	log.Printf("Server berjalan di port: %s", port)
 	r.Run(port)
 }
