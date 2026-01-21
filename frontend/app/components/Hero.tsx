@@ -54,8 +54,8 @@ export default function Hero() {
           {/* Sun Decoration - Left */}
 
           {/* Star Decoration - Right */}
-          <div className="absolute right-10 top-0 md:right-32 md:top-10">
-            <svg className="w-10 h-10 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+          <div className="absolute right-10 top-0 md:right-32 md:top-0">
+            <svg className="w-10 h-10 text-yellow-400 hover:scale-110 -rotate-45 transition-all duration-300" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2L9.5 9.5H2l6 4.5-2 7.5 6-4.5 6 4.5-2-7.5 6-4.5h-7.5L12 2z" />
             </svg>
           </div>
@@ -96,11 +96,21 @@ export default function Hero() {
             <div className="bg-white rounded-2xl p-4 shadow-xl w-56">
               {/* Avatar Group */}
               <div className="flex -space-x-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white"></div>
-                <div className="w-8 h-8 rounded-full bg-green-500 border-2 border-white"></div>
-                <div className="w-8 h-8 rounded-full bg-yellow-500 border-2 border-white"></div>
-                <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-white"></div>
-                <div className="w-8 h-8 rounded-full bg-pink-500 border-2 border-white"></div>
+                <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white">
+                  <Image src="/assets/images/student-girl-hero.png" width={50} height={50} alt="Happy student with books" className="object-cover rounded-full" priority></Image>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-green-500 border-2 border-white">
+                  <Image src="/assets/images/girl-student.png" width={50} height={50} alt="Happy student with books" className="object-cover rounded-full" priority></Image>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-yellow-500 border-2 border-white">
+                  <Image src="/assets/images/cowok.webp" width={50} height={50} alt="Happy student with books" className="object-cover rounded-full" priority></Image>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-white">
+                  <Image src="/assets/images/hero-girl.png" width={50} height={50} alt="Happy student with books" className="object-cover rounded-full" priority></Image>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-pink-500 border-2 border-white">
+                  <Image src="/assets/images/student-girl-hero.png" width={50} height={50} alt="Happy student with books" className="object-cover rounded-full" priority></Image>
+                </div>
               </div>
               <div className="text-2xl font-bold text-gray-900 mb-1">60k+</div>
               <p className="text-xs text-gray-600 leading-relaxed">
@@ -119,8 +129,8 @@ export default function Hero() {
           </div>
 
           {/* Hero Person Image */}
-          <div className="relative bottom-0 w-80 h-96 md:w-96 md:h-[500px]">
-            <Image src="/assets/images/hero-girl.png" width={600} height={600} alt="Happy student with books" className="object-cover bottom-0 absolute" priority />
+          <div className="relative bottom-0 w-90 h-96 md:w-96 md:h-[500px]">
+            <Image src="/assets/images/student-girl-hero.png" width={600} height={600} alt="Happy student with books" className="object-cover bottom-0 absolute" priority />
           </div>
         </div>
       </div>

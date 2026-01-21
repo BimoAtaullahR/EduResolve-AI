@@ -11,7 +11,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "EduSkill - Learn Anywhere, Anytime",
+  title: "EduResolve - Learn Anywhere, Anytime",
   description: "Empower your future with expert-led courses",
 };
 

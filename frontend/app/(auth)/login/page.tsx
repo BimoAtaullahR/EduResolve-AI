@@ -96,7 +96,7 @@ export default function LoginPage() {
       {/* Left Side - Gradient Background */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#52abff] to-[#20578f] relative overflow-hidden">
         <Link href="/" className="absolute top-6 left-6 z-50 cursor-pointer text-xl font-semibold italic text-white">
-          EduSkill
+          EduResolve
         </Link>
         <Image src="/assets/images/hero-girl.png" alt="Auth Background" width={450} height={450} className="object-cover absolute bottom-0 right-[-10]" />
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/5 rounded-full"></div>

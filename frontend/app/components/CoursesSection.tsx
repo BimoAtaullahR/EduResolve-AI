@@ -186,7 +186,7 @@ const CoursesSection: React.FC = () => {
   const filteredCourses = activeCategory === "All courses" ? courses : courses.filter((course) => course.category === activeCategory);
 
   return (
-    <section className="py-20 px-4" style={{ backgroundColor: "#e7f0ff" }}>
+    <section id="courses" className="py-20 px-4" style={{ backgroundColor: "#e7f0ff" }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
