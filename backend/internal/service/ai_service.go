@@ -68,3 +68,34 @@ func (s *AIService) ProcessComplaint(ctx context.Context, conversationsID string
 
 	return &analysis, nil
 }
+
+func (s *AIService) GenerateSuggestions(ctx context.Context, history string) ([]model.Suggestion, error) {
+	aiModel := s.geminiClient.Model
+	aiModel.ResponseMIMEType = "application/json"
+
+	aiModel.SetTemperature(0.7)
+
+	systemPrompt := `You are Alex, a Senior Customer Support Lead. 
+    Analyze the chat history and provide 2 replies (Formal & Empathetic) in Indonesian.
+    Output format MUST be a JSON Array: [{"tone": "...", "content": "..."}]
+    Input: %s`
+
+	finalPrompt := fmt.Sprintf(systemPrompt, history)
+
+	resp, err := aiModel.GenerateContent(ctx, genai.Text(finalPrompt))
+	if err != nil {
+		return nil, err
+	}
+
+	var suggestions []model.Suggestion
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("empty response from AI")
+	}
+	jsonString := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+
+	if err := json.Unmarshal([]byte(jsonString), &suggestions); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %v. Raw: %s", err, jsonString)
+	}
+
+	return suggestions, nil
+}

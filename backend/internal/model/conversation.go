@@ -26,3 +26,8 @@ type Conversation struct {
 	AIAnalysis  AIAnalysis `json:"ai_analysis" firestore:"ai_analysis"`
 	UpdatedAt   time.Time  `json:"updated_at" firestore:"updated_at"`
 }
+
+type Suggestion struct {
+	Tone    string `json:"tone"`
+	Content string `json:"content"`
+}

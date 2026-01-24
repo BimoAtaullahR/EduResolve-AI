@@ -94,6 +94,20 @@ func main() {
 				}
 				c.JSON(http.StatusOK, conv)
 			})
+
+			conversations.GET("/:id/suggestions", func(c *gin.Context) {
+				id := c.Param("id")
+				doc, _ := firestoreClient.Collection("conversations").Doc(id).Get(c)
+				var conv model.Conversation
+				doc.DataTo(&conv)
+
+				suggestions, err := aiSvc.GenerateSuggestions(c, conv.LastMessage)
+				if err != nil {
+					c.JSON(500, gin.H{"error": "Gagal menghasilkan saran AI: " + err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"suggestions": suggestions})
+			})
 		}
 	}
 
