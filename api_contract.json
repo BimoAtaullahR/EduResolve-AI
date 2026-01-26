@@ -103,18 +103,25 @@
       "get_overview": {
         "method": "GET",
         "path": "/analytics/overview",
-        "description": "Data statistik untuk dashboard manajerial Alex.",
+        "description": "Data agregasi untuk dashboard manajerial Alex.",
         "response_sample": {
           "issue_distribution": {
-            "Exam": 45,
-            "Payment": 12,
-            "Technical": 30,
-            "Certification": 13
+            "Exam/Assignment": 45,
+            "Payment & Subs": 12,
+            "Technical Issue": 30,
+            "Others": 5
           },
-          "average_sentiment_score": 0.85,
-          "daily_tickets": [20, 35, 15, 40]
+          "average_priority_score": 7.85,
+          "daily_tickets": [
+            { "date": "2026-01-15", "count": 10 },
+            { "date": "2026-01-16", "count": 25 },
+            { "date": "2026-01-17", "count": 15 },
+            { "date": "2026-01-18", "count": 30 },
+            { "date": "2026-01-19", "count": 20 },
+            { "date": "2026-01-20", "count": 35 },
+            { "date": "2026-01-21", "count": 18 }
+          ]     
         }
-      }
     }
   }
 }

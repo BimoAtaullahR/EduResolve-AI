@@ -67,9 +67,6 @@ func main() {
 		c.Next()
 	})
 
-	//inisialisasi auth client
-	authClient, _ := app.Auth(ctx)
-
 	//inisialisasi handler auth
 	authHandler := handler.NewAuthHandler(authClient, firestoreClient)
 
