@@ -27,21 +27,26 @@ export default function LoginPage() {
       const result = await signInWithGoogle();
 
       if (result.success && result.idToken && result.user) {
-        console.log("Login successful!");
-        console.log("ID Token (JWT) for backend:", result.idToken);
+        console.log("Google Sign-in successful!");
         console.log("User UID:", result.user.uid);
 
-        // Role is automatically loaded from localStorage by AuthContext
-        // based on the user's UID after Firebase auth completes
-        // Give AuthContext a moment to load the role
-        setTimeout(() => {
-          // Get the stored role for this user
-          const storedRole = localStorage.getItem(`eduskill_user_role_${result.user!.uid}`);
-          const role = (storedRole as UserRole) || UserRole.CUSTOMER;
+        // Call backend to validate and get user data
+        const { loginWithBackend } = await import("@/lib/api");
+        const backendResult = await loginWithBackend({ idToken: result.idToken });
 
-          console.log("User role from storage:", role);
+        if (backendResult.success && backendResult.data?.user) {
+          console.log("Backend login successful:", backendResult.data);
+
+          // Cache the role from backend
+          const role = (backendResult.data.user.role as UserRole) || UserRole.CUSTOMER;
+          localStorage.setItem(`eduskill_user_role_${result.user.uid}`, role);
+
           router.push(getDefaultRedirectPath(role));
-        }, 100);
+        } else {
+          // User not found in backend - might need to register first
+          console.warn("Backend login failed:", backendResult.error);
+          setError(backendResult.error || "User not registered. Please register first.");
+        }
       } else {
         setError(result.error || "Login failed. Please try again.");
       }
@@ -69,17 +74,26 @@ export default function LoginPage() {
       const result = await signInWithEmail(email, password);
 
       if (result.success && result.idToken && result.user) {
-        console.log("Login successful!");
-        console.log("ID Token (JWT) for backend:", result.idToken);
+        console.log("Email Sign-in successful!");
+        console.log("User UID:", result.user.uid);
 
-        // Get the stored role for this user
-        setTimeout(() => {
-          const storedRole = localStorage.getItem(`eduskill_user_role_${result.user!.uid}`);
-          const role = (storedRole as UserRole) || UserRole.CUSTOMER;
+        // Call backend to validate and get user data
+        const { loginWithBackend } = await import("@/lib/api");
+        const backendResult = await loginWithBackend({ idToken: result.idToken });
 
-          console.log("User role from storage:", role);
+        if (backendResult.success && backendResult.data?.user) {
+          console.log("Backend login successful:", backendResult.data);
+
+          // Cache the role from backend
+          const role = (backendResult.data.user.role as UserRole) || UserRole.CUSTOMER;
+          localStorage.setItem(`eduskill_user_role_${result.user.uid}`, role);
+
           router.push(getDefaultRedirectPath(role));
-        }, 100);
+        } else {
+          // User not found in backend - might need to register first
+          console.warn("Backend login failed:", backendResult.error);
+          setError(backendResult.error || "User not registered. Please register first.");
+        }
       } else {
         setError(result.error || "Login failed. Please check your credentials.");
       }

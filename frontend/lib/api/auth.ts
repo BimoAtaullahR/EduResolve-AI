@@ -1,7 +1,7 @@
 // API Service for authentication with backend
 // This handles communication with the Golang backend
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
 
 // Types
 export interface AuthResponse {

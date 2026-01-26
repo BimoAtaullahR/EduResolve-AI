@@ -35,9 +35,9 @@ export function canAccessDashboard(role: UserRole): boolean {
 export function getDefaultRedirectPath(role: UserRole): string {
   switch (role) {
     case UserRole.CUSTOMER_SUPPORT:
-      return "/dashboard";
+      return "/agent/dashboard";
     case UserRole.CUSTOMER:
     default:
-      return "/dashboard";
+      return "/customer/dashboard";
   }
 }
