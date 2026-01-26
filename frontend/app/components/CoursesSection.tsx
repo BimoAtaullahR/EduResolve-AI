@@ -6,7 +6,7 @@ import { Star, Clock, BookOpen, Users, ChevronLeft, ChevronRight } from "lucide-
 import Link from "next/link";
 
 // Course type
-interface Course {
+export interface Course {
   id: number;
   title: string;
   author: string;
@@ -21,7 +21,7 @@ interface Course {
 }
 
 // Sample course data (image placeholders)
-const courses: Course[] = [
+export const courses: Course[] = [
   {
     id: 1,
     title: "Learn Figma from Basic",
@@ -120,7 +120,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
         {course.image ? (
           <Image src={course.image} alt={course.title} fill className="object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-blue-600">
+          <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-blue-400 to-blue-600">
             <span className="text-white text-sm">Course Image</span>
           </div>
         )}
@@ -169,7 +169,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
             <span className="text-xl font-bold text-gray-900">${course.price.toFixed(2)}</span>
             <span className="text-xs text-gray-400">/lifetime</span>
           </div>
-          <Link href="/login">
+          <Link href={`/customer/dashboard/courses/${course.id}`}>
             <button className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-full hover:bg-blue-50 transition-colors cursor-pointer">Enroll Now</button>
           </Link>
         </div>

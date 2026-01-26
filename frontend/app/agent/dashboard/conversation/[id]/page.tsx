@@ -1,22 +1,36 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import { getConversation, getSuggestions, addMessage, assignAgent, updateStatus, type Conversation, type ResponseSuggestion } from "@/lib/api";
-import { FiArrowLeft, FiSend, FiCopy, FiCheck, FiUser, FiClock, FiAlertCircle } from "react-icons/fi";
+import { FiArrowLeft, FiSend, FiCopy, FiCheck, FiClock, FiAlertCircle, FiAlertTriangle, FiZap, FiBook, FiCreditCard, FiLock } from "react-icons/fi";
 
-const priorityColors: Record<number, string> = {
-  1: "bg-gray-100 text-gray-800",
-  2: "bg-gray-100 text-gray-800",
-  3: "bg-gray-100 text-gray-800",
-  4: "bg-yellow-100 text-yellow-800",
-  5: "bg-yellow-100 text-yellow-800",
-  6: "bg-orange-100 text-orange-800",
-  7: "bg-orange-100 text-orange-800",
-  8: "bg-red-100 text-red-800",
-  9: "bg-red-100 text-red-800",
-  10: "bg-red-200 text-red-900",
+// Enhanced urgency color mapping (1-10 scale)
+const getUrgencyStyle = (score: number): { bg: string; text: string; border: string; icon: React.ReactElement; label: string } => {
+  if (score >= 9) return { bg: "bg-red-100", text: "text-red-900", border: "border-red-300", icon: <FiAlertTriangle className="w-4 h-4" />, label: "CRITICAL" };
+  if (score >= 7) return { bg: "bg-orange-100", text: "text-orange-900", border: "border-orange-300", icon: <FiZap className="w-4 h-4" />, label: "HIGH" };
+  if (score >= 4) return { bg: "bg-yellow-100", text: "text-yellow-900", border: "border-yellow-300", icon: <FiAlertCircle className="w-4 h-4" />, label: "MEDIUM" };
+  return { bg: "bg-green-100", text: "text-green-900", border: "border-green-300", icon: <FiCheck className="w-4 h-4" />, label: "LOW" };
+};
+
+// Category icons and colors for EdTech
+const getCategoryStyle = (category: string): { icon: React.ReactElement; color: string } => {
+  const lower = category.toLowerCase();
+  if (lower.includes("ujian") || lower.includes("exam")) return { icon: <FiBook className="w-4 h-4" />, color: "purple" };
+  if (lower.includes("akses") || lower.includes("access")) return { icon: <FiLock className="w-4 h-4" />, color: "blue" };
+  if (lower.includes("pembayaran") || lower.includes("payment")) return { icon: <FiCreditCard className="w-4 h-4" />, color: "green" };
+  return { icon: <FiAlertCircle className="w-4 h-4" />, color: "gray" };
+};
+
+// Sentiment emoji mapping
+const getSentimentEmoji = (sentiment: string): string => {
+  const lower = sentiment.toLowerCase();
+  if (lower.includes("positive") || lower.includes("happy")) return "😊";
+  if (lower.includes("anxious") || lower.includes("worried")) return "😰";
+  if (lower.includes("angry") || lower.includes("frustrated")) return "😠";
+  if (lower.includes("sad")) return "😔";
+  return "😐";
 };
 
 const sentimentColors: Record<string, string> = {
@@ -165,7 +179,6 @@ export default function ConversationDetailPage() {
             </button>
             <div>
               <h1 className="font-semibold text-gray-900">{conversation.customer_name || "Customer"}</h1>
-              <p className="text-sm text-gray-500">{conversation.customer_email}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -249,22 +262,38 @@ export default function ConversationDetailPage() {
               <p className="text-sm text-blue-800">{ai.summary}</p>
             </div>
 
-            {/* Priority & Sentiment */}
+            {/* Priority & Sentiment - Enhanced with Icons*/}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Priority</p>
-                <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${priorityColors[ai.priority_score] || "bg-gray-100"}`}>{ai.priority_score}/10</span>
+              {/* Urgency Badge */}
+              <div className="relative">
+                <div className={`${getUrgencyStyle(ai.priority_score).bg} ${getUrgencyStyle(ai.priority_score).border} border-2 rounded-xl p-4 transition-all hover:shadow-md`}>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-semibold">Urgency Level</p>
+                  <div className={`flex items-center gap-2 ${getUrgencyStyle(ai.priority_score).text}`}>
+                    {getUrgencyStyle(ai.priority_score).icon}
+                    <span className="text-2xl font-bold">{ai.priority_score}</span>
+                    <span className="text-xs font-medium">/10</span>
+                  </div>
+                  <p className={`text-xs mt-1 font-bold ${getUrgencyStyle(ai.priority_score).text}`}>{getUrgencyStyle(ai.priority_score).label}</p>
+                </div>
               </div>
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Sentiment</p>
-                <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full capitalize ${sentimentColors[ai.sentiment] || "bg-gray-100"}`}>{ai.sentiment}</span>
+
+              {/* Sentiment with Emoji */}
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 transition-all hover:shadow-md">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-semibold">Sentiment</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl">{getSentimentEmoji(ai.sentiment)}</span>
+                  <span className={`text-sm font-medium capitalize ${sentimentColors[ai.sentiment.toLowerCase()]} px-2 py-1 rounded-full`}>{ai.sentiment}</span>
+                </div>
               </div>
             </div>
 
-            {/* Category */}
-            <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-              <p className="text-xs text-purple-600 uppercase tracking-wide mb-1">Category</p>
-              <p className="font-medium text-purple-900">{ai.category}</p>
+            {/* Category with Icon - Enhanced */}
+            <div className={`bg-${getCategoryStyle(ai.category).color}-50 rounded-xl p-4 border-2 border-${getCategoryStyle(ai.category).color}-200 transition-all hover:shadow-md`}>
+              <p className={`text-xs text-${getCategoryStyle(ai.category).color}-600 uppercase tracking-wide mb-2 font-semibold`}>Category</p>
+              <div className={`flex items-center gap-2 text-${getCategoryStyle(ai.category).color}-900`}>
+                {getCategoryStyle(ai.category).icon}
+                <p className="font-bold text-lg">{ai.category}</p>
+              </div>
             </div>
 
             {/* Reason */}

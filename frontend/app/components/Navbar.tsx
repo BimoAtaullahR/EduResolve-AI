@@ -22,8 +22,47 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [activeLink, setActiveLink] = useState<string>("/");
 
+  // --- FUNGSI BARU: MENANGANI KLIK ---
+  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>, href: string) => {
+    // 1. Mencegah perilaku default (agar URL tidak sekadar berubah tanpa scroll)
+    e.preventDefault();
+
+    // 2. Logika Scroll
+    if (href === "/") {
+      // Jika Home, scroll ke paling atas
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      // Update URL manual (opsional, agar bersih)
+      window.history.pushState(null, "", "/");
+    } else {
+      // Jika Link lain (#about, #courses, dll)
+      const targetId = href.replace("#", "");
+      const elem = document.getElementById(targetId);
+
+      if (elem) {
+        // Offset (jika perlu dikurangi tinggi navbar, misal 80px)
+        const headerOffset = 80;
+        const elementPosition = elem.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.scrollY - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        });
+
+        // Atau cara simpel tanpa offset:
+        // elem.scrollIntoView({ behavior: "smooth" });
+
+        // Update URL hash
+        window.history.pushState(null, "", href);
+      }
+    }
+  };
+
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScrollSpy = () => {
       // --- 1. Logika Background Navbar ---
       if (window.scrollY > 50) {
         setIsScrolled(true);
@@ -48,6 +87,8 @@ export default function Navbar() {
           if (element) {
             const rect = element.getBoundingClientRect();
             // Offset 150px untuk kompensasi tinggi header fixed
+            // Logika: Jika bagian atas elemen kurang dari 150px (sudah masuk viewport atas)
+            // DAN bagian bawah elemen masih terlihat
             if (rect.top <= 150 && rect.bottom >= 150) {
               currentSection = link.href;
             }
@@ -58,15 +99,15 @@ export default function Navbar() {
       setActiveLink(currentSection);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScrollSpy);
+    return () => window.removeEventListener("scroll", handleScrollSpy);
   }, []);
 
   return (
-    <header className={`fixed z-[1000] w-full py-4 px-6 md:px-12 lg:px-20 transition-all duration-300 ${isScrolled ? "bg-white-blue/60 backdrop-blur-md shadow-lg" : "bg-transparent"}`}>
+    <header className={`fixed z-[1000] w-full py-4 px-6 md:px-12 lg:px-20 transition-all duration-300 ${isScrolled ? "bg-white/60 backdrop-blur-md shadow-lg" : "bg-transparent"}`}>
       <nav className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" onClick={(e) => handleScroll(e, "/")} className="flex items-center gap-2">
           <span className={`text-xl font-semibold italic ${isScrolled ? "text-black" : "text-white"}`}>EduResolve</span>
         </Link>
 
@@ -74,25 +115,17 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => {
             const isActive = activeLink === link.href;
-
-            // LOGIKA WARNA:
-            // Jika Link AKTIF DAN BUKAN HOME -> Warna Primary Blue
-            // Jika Link HOME (Aktif/Tidak) ATAU Link Lain (Tidak Aktif) -> Ikuti warna background (Scrolled=Hitam, Top=Putih)
             const isBlueActive = isActive && link.href !== "/";
 
             return (
               <Link
                 key={link.name}
                 href={link.href}
+                // TAMBAHKAN ONCLICK DI SINI
+                onClick={(e) => handleScroll(e, link.href)}
                 className={`text-sm font-medium transition-colors duration-200 
-                  ${
-                    isBlueActive
-                      ? "text-primary-blue font-bold" // Style khusus active (kecuali home)
-                      : isScrolled
-                        ? "text-black hover:text-primary-blue"
-                        : "text-white hover:text-blue-200" // Style default/home
-                  }
-                  ${isActive && link.href === "/" ? "font-bold" : ""} // Opsional: Tetap tebalkan Home jika aktif
+                  ${isBlueActive ? "text-primary-blue font-bold" : isScrolled ? "text-black hover:text-primary-blue" : "text-white hover:text-blue-200"}
+                  ${isActive && link.href === "/" ? "font-bold" : ""} 
                 `}
               >
                 {link.name}
@@ -115,7 +148,7 @@ export default function Navbar() {
           <div className="w-9 h-9 invisible"></div>
         </Link>
 
-        {/* Mobile Menu Button - Juga menyesuaikan warna saat di-scroll agar terlihat */}
+        {/* Mobile Menu Button */}
         <button className={`md:hidden p-2 ${isScrolled ? "text-black" : "text-white"}`}>
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

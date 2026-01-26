@@ -119,20 +119,29 @@ export async function addMessage(
 /**
  * Get all conversations (for agent or customer)
  */
-export async function getConversations(role: string, uid: string): Promise<ConversationsResponse> {
+export async function getConversations(): Promise<ConversationsResponse> {
   try {
-    const response = await fetch(`${API_URL}/conversations?role=${role}&uid=${uid}`, {
+    const response = await fetch(`${API_URL}/conversations`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     });
 
-    const data = await response.json();
+    const text = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("❌ Backend tidak mengembalikan JSON valid:", text);
+      return { success: false, error: "Server Error: Invalid JSON response" };
+    }
 
     if (!response.ok) {
       return { success: false, error: data.error || "Failed to fetch conversations" };
     }
 
-    return { success: true, data: data.data };
+    // Backend returns { conversations: [...] } directly
+    return { success: true, data: { conversations: data.conversations || [] } };
   } catch (error) {
     console.error("Get conversations error:", error);
     return { success: false, error: "Network error" };
@@ -155,7 +164,8 @@ export async function getConversation(conversationId: string): Promise<Conversat
       return { success: false, error: data.error || "Failed to fetch conversation" };
     }
 
-    return { success: true, data: data.data };
+    // Backend returns conversation object directly
+    return { success: true, data: { conversation: data } };
   } catch (error) {
     console.error("Get conversation error:", error);
     return { success: false, error: "Network error" };
@@ -178,7 +188,8 @@ export async function getSuggestions(conversationId: string): Promise<Suggestion
       return { success: false, error: data.error || "Failed to get suggestions" };
     }
 
-    return { success: true, data: data.data };
+    // Backend returns { suggestions: [...] } directly
+    return { success: true, data: { suggestions: data.suggestions || [] } };
   } catch (error) {
     console.error("Get suggestions error:", error);
     return { success: false, error: "Network error" };

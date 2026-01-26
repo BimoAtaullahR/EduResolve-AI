@@ -37,7 +37,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, ima
 
 const WhyLearnersSection: React.FC = () => {
   return (
-    <section id="about" className="py-20 px-4 bg-gradient-to-b from-gray-50 to-white">
+    <section id="about" className="py-20 px-4 bg-linear-to-b from-gray-50 to-white">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">

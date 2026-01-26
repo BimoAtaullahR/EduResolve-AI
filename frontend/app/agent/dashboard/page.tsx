@@ -53,7 +53,7 @@ export default function AgentDashboardPage() {
   const loadConversations = async () => {
     setIsLoading(true);
     try {
-      const result = await getConversations("agent", user?.uid || "");
+      const result = await getConversations();
       if (result.success && result.data?.conversations) {
         const convs = result.data.conversations;
         setConversations(convs);

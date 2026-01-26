@@ -108,7 +108,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Gradient Background */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#52abff] to-[#20578f] relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-[#52abff] to-[#20578f] relative overflow-hidden">
         <Link href="/" className="absolute top-6 left-6 z-50 cursor-pointer text-xl font-semibold italic text-white">
           EduResolve
         </Link>
