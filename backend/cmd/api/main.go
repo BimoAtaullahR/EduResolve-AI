@@ -70,6 +70,12 @@ func main() {
 	//inisialisasi handler auth
 	authHandler := handler.NewAuthHandler(authClient, firestoreClient)
 
+	//inisialisasi analytics service
+	analyticsService := service.NewAnalyticsService(firestoreClient)
+
+	//inisialisasi analytics handler
+	analyticsHandler := handler.NewAnalyticsHandler(analyticsService)
+
 	//grouping API sesuai contract
 	v1 := r.Group("/api/v1")
 	{
@@ -119,6 +125,13 @@ func main() {
 				}
 				c.JSON(http.StatusOK, gin.H{"suggestions": suggestions})
 			})
+		}
+
+		//endpoint analytics
+		analytics := v1.Group("/analytics")
+		{
+			analytics.GET("/overview", analyticsHandler.GetOverview)
+
 		}
 	}
 

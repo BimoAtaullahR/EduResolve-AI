@@ -56,7 +56,7 @@ func (s *AnalyticsService) GetOverview(ctx context.Context) (*model.AnalyticsOve
 			totalPriority += float64(conv.AIAnalysis.PriorityScore)
 		}
 
-		dateKey := conv.UpdatedAt.Format("2026-01-02")
+		dateKey := conv.UpdatedAt.Format("2006-01-02")
 		dateMap[dateKey]++
 
 	}
@@ -71,7 +71,7 @@ func (s *AnalyticsService) GetOverview(ctx context.Context) (*model.AnalyticsOve
 
 	for i := 6; i >= 0; i-- {
 		targetDate := now.AddDate(0, 0, -i)
-		dateSTR := targetDate.Format("2026-01-02")
+		dateSTR := targetDate.Format("2006-01-02")
 
 		count := 0
 		if val, ok := dateMap[dateSTR]; ok {
