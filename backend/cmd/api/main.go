@@ -67,11 +67,14 @@ func main() {
 		c.Next()
 	})
 
-	//inisialisasi auth client
-	authClient, _ := app.Auth(ctx)
-
 	//inisialisasi handler auth
 	authHandler := handler.NewAuthHandler(authClient, firestoreClient)
+
+	//inisialisasi analytics service
+	analyticsService := service.NewAnalyticsService(firestoreClient)
+
+	//inisialisasi analytics handler
+	analyticsHandler := handler.NewAnalyticsHandler(analyticsService)
 
 	//grouping API sesuai contract
 	v1 := r.Group("/api/v1")
@@ -108,6 +111,27 @@ func main() {
 				}
 				c.JSON(http.StatusOK, conv)
 			})
+
+			conversations.GET("/:id/suggestions", func(c *gin.Context) {
+				id := c.Param("id")
+				doc, _ := firestoreClient.Collection("conversations").Doc(id).Get(c)
+				var conv model.Conversation
+				doc.DataTo(&conv)
+
+				suggestions, err := aiSvc.GenerateSuggestions(c, conv.LastMessage)
+				if err != nil {
+					c.JSON(500, gin.H{"error": "Gagal menghasilkan saran AI: " + err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"suggestions": suggestions})
+			})
+		}
+
+		//endpoint analytics
+		analytics := v1.Group("/analytics")
+		{
+			analytics.GET("/overview", analyticsHandler.GetOverview)
+
 		}
 	}
 
