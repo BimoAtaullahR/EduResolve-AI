@@ -37,11 +37,26 @@
         }
       }
     },
+    "student": {
+      "submit_complaint": {
+        "method": "POST",
+        "path": "/student/complaints",
+        "description": "[NEW] Endpoint untuk mahasiswa. Memicu AI Analysis secara instan saat submit.",
+        "request_body": {
+          "student_name": "string",
+          "text": "string"
+        },
+        "response_sample": {
+          "success": true,
+          "ticket_id": "conv-123"
+        }
+      }
+    },
     "inbox": {
       "get_conversations": {
         "method": "GET",
-        "path": "/conversations",
-        "description": "Mengambil daftar pesan masuk untuk dashboard utama.",
+        "path": "/conversations?sort_by=priority_score&order=desc",
+        "description": "Mengambil daftar pesan. Default urutan berdasarkan Priority Score tertinggi.",
         "response_sample": {
           "conversations": [
             {
@@ -59,9 +74,7 @@
             }
           ]
         }
-      }
-    },
-    "ai_intelligence": {
+      },
       "get_conversation_detail": {
         "method": "GET",
         "path": "/conversations/:id",
