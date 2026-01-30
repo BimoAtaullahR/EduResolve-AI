@@ -21,7 +21,7 @@ func NewAIService(g *ai.GeminiClient, f *firestore.Client) *AIService {
 	return &AIService{geminiClient: g, firestore: f}
 }
 
-func (s *AIService) ProcessComplaint(ctx context.Context, conversationsID string, complainText string) (*model.AIAnalysis, error) {
+func (s *AIService) ProcessComplaint(ctx context.Context, complainText string) (*model.AIAnalysis, error) {
 	if complainText == "" {
 		return nil, errors.New("complain text cannot be empty")
 	}
@@ -58,13 +58,13 @@ func (s *AIService) ProcessComplaint(ctx context.Context, conversationsID string
 	//set isprocessed jadi true
 	analysis.IsProcessed = true
 	//update database
-	_, err = s.firestore.Collection("conversations").Doc(conversationsID).Set(ctx, map[string]interface{}{
-		"ai_analysis": analysis,
-	}, firestore.MergeAll)
+	//_, err = s.firestore.Collection("conversations").Doc(conversationsID).Set(ctx, map[string]interface{}{
+	//	"ai_analysis": analysis,
+	//}, firestore.MergeAll)
 
-	if err != nil {
-		return nil, fmt.Errorf("gagal update firestore: %w", err)
-	}
+	//if err != nil {
+	//	return nil, fmt.Errorf("gagal update firestore: %w", err)
+	//}
 
 	return &analysis, nil
 }

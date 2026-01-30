@@ -18,13 +18,16 @@ type AIAnalysis struct {
 }
 
 type Conversation struct {
-	ID          string     `json:"id" firestore:"-"` // ID dokumen firestore, tidak perlu disimpan di dalam body doc
-	StudentName string     `json:"student_name" firestore:"student_name"`
-	LastMessage string     `json:"last_message" firestore:"last_message"`
-	Status      string     `json:"status" firestore:"status"` // "open", "in_progress", "resolved"
-	Messages    []Message  `json:"messages" firestore:"messages"`
-	AIAnalysis  AIAnalysis `json:"ai_analysis" firestore:"ai_analysis"`
-	UpdatedAt   time.Time  `json:"updated_at" firestore:"updated_at"`
+	ID           string     `json:"id" firestore:"-"` // ID dokumen firestore, tidak perlu disimpan di dalam body doc
+	StudentId    string     `json:"student_id" firestore:"student_id"`
+	StudentName  string     `json:"student_name" firestore:"student_name"`
+	StudentEmail string     `json:"student_email" firestore:"student_email"`
+	LastMessage  string     `json:"last_message" firestore:"last_message"`
+	Status       string     `json:"status" firestore:"status"` // "open", "in_progress", "resolved"
+	Messages     []Message  `json:"messages" firestore:"messages"`
+	AIAnalysis   AIAnalysis `json:"ai_analysis" firestore:"ai_analysis"`
+	CreatedAt    time.Time  `json:"created_at" firestore:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" firestore:"updated_at"`
 }
 
 type Suggestion struct {

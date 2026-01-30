@@ -70,11 +70,19 @@ func main() {
 	//inisialisasi handler auth
 	authHandler := handler.NewAuthHandler(authClient, firestoreClient)
 
+	//inisialisasi student handler
+	studentHandler := handler.NewStudentHandler(firestoreClient, aiSvc)
+
 	//inisialisasi analytics service
 	analyticsService := service.NewAnalyticsService(firestoreClient)
 
 	//inisialisasi analytics handler
 	analyticsHandler := handler.NewAnalyticsHandler(analyticsService)
+
+	//Setup middleware
+	authMiddleware := middleware.AuthMiddleware(authClient)
+	studentGuard := middleware.RequireRole("customer", firestoreClient)
+	supportGuard := middleware.RequireRole("customer_suppport", firestoreClient)
 
 	//grouping API sesuai contract
 	v1 := r.Group("/api/v1")
@@ -85,10 +93,20 @@ func main() {
 			authGroup.POST("/register", authHandler.Register)
 			authGroup.POST("/login", authHandler.Login)
 		}
+		//endpoint student
+		student := v1.Group("/student")
+		student.Use(authMiddleware, studentGuard)
+		{
+			//blum dibuat handler nya
+			student.POST("/complaints", studentHandler.SubmitComplaint)
+
+		}
+
 		//endpoint inbox & conversations
 		conversations := v1.Group("/conversations")
+		conversations.Use(authMiddleware, supportGuard)
 		{
-			conversations.GET("", middleware.AuthMiddleware(authClient), func(c *gin.Context) {
+			conversations.GET("", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"message": "Fetch conversations ready"})
 			})
 			conversations.GET("/:id", func(c *gin.Context) {
@@ -98,17 +116,6 @@ func main() {
 				var conv model.Conversation
 				doc.DataTo(&conv)
 
-				if !conv.AIAnalysis.IsProcessed {
-					fullText := ""
-					for _, m := range conv.Messages {
-						fullText += m.Text + " "
-					}
-
-					analysis, err := aiSvc.ProcessComplaint(c, id, fullText)
-					if err == nil {
-						conv.AIAnalysis = *analysis
-					}
-				}
 				c.JSON(http.StatusOK, conv)
 			})
 
@@ -129,6 +136,7 @@ func main() {
 
 		//endpoint analytics
 		analytics := v1.Group("/analytics")
+		analytics.Use(authMiddleware, supportGuard)
 		{
 			analytics.GET("/overview", analyticsHandler.GetOverview)
 
