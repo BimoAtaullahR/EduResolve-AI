@@ -48,6 +48,7 @@
         },
         "response_sample": {
           "success": true,
+          "message": "pesan berhasil dikirim",
           "ticket_id": "conv-123"
         }
       }
