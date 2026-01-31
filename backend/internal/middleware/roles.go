@@ -11,7 +11,7 @@ import (
 func RequireRole(role string, f *firestore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uid, exists := c.Get("user_id")
-		if exists != false {
+		if !exists {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "UID tidak ditemukan"})
 			return
 		}
