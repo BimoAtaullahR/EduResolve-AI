@@ -79,6 +79,9 @@ func main() {
 	//inisialisasi analytics handler
 	analyticsHandler := handler.NewAnalyticsHandler(analyticsService)
 
+	//inisialisasi inbox handler
+	inboxHandler := handler.NewInboxHandler(firestoreClient)
+
 	//Setup middleware
 	authMiddleware := middleware.AuthMiddleware(authClient)
 	studentGuard := middleware.RequireRole("customer", firestoreClient)
@@ -106,9 +109,7 @@ func main() {
 		conversations := v1.Group("/conversations")
 		conversations.Use(authMiddleware, supportGuard)
 		{
-			conversations.GET("", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"message": "Fetch conversations ready"})
-			})
+			conversations.GET("", inboxHandler.GetConversations)
 			conversations.GET("/:id", func(c *gin.Context) {
 				id := c.Param("id")
 
