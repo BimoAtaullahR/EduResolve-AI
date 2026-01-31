@@ -100,9 +100,10 @@ func main() {
 		student := v1.Group("/student")
 		student.Use(authMiddleware, studentGuard)
 		{
-			//blum dibuat handler nya
 			student.POST("/complaints", studentHandler.SubmitComplaint)
-
+			student.GET("/conversations", inboxHandler.GetStudentConversations)
+			student.GET("/conversations/:id", inboxHandler.GetStudentConversationDetail)
+			student.POST("/conversations/:id/reply", inboxHandler.StudentReplyConversation)
 		}
 
 		//endpoint inbox & conversations
@@ -147,7 +148,7 @@ func main() {
 	}
 
 	//menjalankan server
-	port := ":8080"
+	port := ":8081"
 	log.Printf("Server berjalan di port: %s", port)
 	r.Run(port)
 }
