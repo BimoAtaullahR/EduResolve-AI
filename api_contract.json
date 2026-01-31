@@ -51,6 +51,57 @@
           "message": "pesan berhasil dikirim",
           "ticket_id": "conv-123"
         }
+      },
+      "get_conversations": {
+        "method": "GET",
+        "path": "/student/conversations",
+        "description": "Mengambil daftar keluhan yang pernah dikirim oleh mahasiswa tersebut.",
+        "response_sample": {
+          "success": true,
+          "data": [
+            {
+              "id": "conv-123",
+              "last_message": "Mohon ditunggu, sedang kami cek...",
+              "status": "open",
+              "updated_at": "2026-01-31T10:05:00Z"
+            }
+          ]
+        }
+      },
+      "get_conversation_detail": {
+        "method": "GET",
+        "path": "/student/conversations/:id",
+        "description": "Melihat detail chat dan balasan dari CS.",
+        "response_sample": {
+          "success": true,
+          "data": {
+            "id": "conv-123",
+            "messages": [
+              {
+                "sender": "student",
+                "text": "Pak, nilai saya error.",
+                "timestamp": "2026-01-31T10:00:00Z"
+              },
+              {
+                "sender": "agent",
+                "text": "Halo, bisa kirimkan NIM nya?",
+                "timestamp": "2026-01-31T10:05:00Z"
+              }
+            ]
+          }
+        }
+      },
+      "reply_conversation": {
+        "method": "POST",
+        "path": "/student/conversations/:id/reply",
+        "description": "Mahasiswa membalas pesan CS.",
+        "request_body": {
+          "text": "NIM saya 12345 pak."
+        },
+        "response_sample": {
+          "success": true,
+          "timestamp": "2026-01-31T10:06:00Z"
+        }
       }
     },
     "inbox": {
