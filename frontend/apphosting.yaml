@@ -18,3 +18,8 @@ env:
 
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
     value: "1:165734058175:web:798ec7de84c8042883de0a"
+
+  # Backend API URL - CRITICAL for login and role-based routing
+  - variable: NEXT_PUBLIC_API_URL
+    value: "https://eduresolve-backend-165734058175.asia-southeast2.run.app/api/v1"
+    # Example: "https://your-backend.run.app/api/v1" or "http://localhost:8081/api/v1"
