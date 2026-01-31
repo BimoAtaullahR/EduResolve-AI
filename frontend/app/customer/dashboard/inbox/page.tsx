@@ -6,7 +6,7 @@ import { auth } from "@/lib/firebase/firebase";
 import { useAuth } from "@/app/context/AuthContext";
 import { MessageSquare, Clock, CheckCircle, AlertCircle, Loader2, ChevronRight, Inbox, Plus, BookOpen, CreditCard, Settings, HelpCircle } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://eduresolve-backend-165734058175.asia-southeast2.run.app/api/v1";
 
 interface AIAnalysis {
   priority_score: number;

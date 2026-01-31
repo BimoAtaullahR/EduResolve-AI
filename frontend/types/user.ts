@@ -38,6 +38,6 @@ export function getDefaultRedirectPath(role: UserRole): string {
       return "/agent/dashboard";
     case UserRole.CUSTOMER:
     default:
-      return "/customer/dashboard";
+      return "/customer/dashboard/courses";
   }
 }

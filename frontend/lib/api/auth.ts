@@ -1,7 +1,7 @@
 // API Service for authentication with backend
 // This handles communication with the Golang backend
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://eduresolve-backend-165734058175.asia-southeast2.run.app/api/v1" || "http://localhost:8081/api/v1";
 
 // Types
 export interface AuthResponse {
