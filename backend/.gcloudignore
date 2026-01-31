@@ -1,0 +1,10 @@
+.git
+.gitignore
+.dockerignore
+README.md
+node_modules/
+tmp/
+
+# Tanda seru (!) artinya whitelist (JANGAN di-ignore)
+!service-account.json
+!.env
