@@ -22,14 +22,6 @@ const priorityConfig: Record<number, { bg: string; text: string; glow: string }>
   10: { bg: "bg-red-300", text: "text-red-900", glow: "ring-2 ring-red-400 animate-pulse" },
 };
 
-const sentimentEmoji: Record<string, string> = {
-  positive: "😊",
-  neutral: "😐",
-  negative: "😠",
-  anxious: "😰",
-  frustrated: "😤",
-};
-
 const statusConfig: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
   open: { bg: "bg-amber-50", text: "text-amber-700", icon: <Clock className="w-3 h-3" /> },
   in_progress: { bg: "bg-blue-50", text: "text-blue-700", icon: <RefreshCw className="w-3 h-3" /> },
@@ -272,10 +264,6 @@ export default function AgentDashboardPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {/* Sentiment */}
-                            <span className="text-lg" title={sentiment}>
-                              {sentimentEmoji[sentiment] || "😐"}
-                            </span>
                             {/* Status Badge */}
                             <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${status.bg} ${status.text}`}>
                               {status.icon}
