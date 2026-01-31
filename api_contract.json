@@ -91,6 +91,18 @@
             "sentiment": "anxious",
             "is_processed": true
           }
+        },
+      },
+      "reply_conversation": {
+        "method": "POST",
+        "path": "/conversations/:id/reply",
+        "description": "CS mengirim balasan ke mahasiswa. Pesan ditambahkan ke history chat.",
+        "request_body": {
+          "text": "Terima kasih, laporan Anda sedang kami proses."
+        },
+        "response_sample": {
+          "success": true,
+          "timestamp": "2026-01-31T10:00:00Z"
         }
       },
       "get_suggestions": {
