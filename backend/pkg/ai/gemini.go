@@ -28,7 +28,7 @@ func InitGemini(ctx context.Context) (*GeminiClient, error) {
 		return nil, err
 	}
 
-	model := client.GenerativeModel("gemini-1.5-flash")
+	model := client.GenerativeModel("gemini-2.5-flash")
 	log.Println("Berhasil terhubung ke Gemini API")
 
 	return &GeminiClient{

@@ -91,7 +91,7 @@
             "sentiment": "anxious",
             "is_processed": true
           }
-        },
+        }
       },
       "reply_conversation": {
         "method": "POST",
@@ -144,7 +144,7 @@
             { "date": "2026-01-19", "count": 20 },
             { "date": "2026-01-20", "count": 35 },
             { "date": "2026-01-21", "count": 18 }
-          ]     
+          ]
         }
       }
     }
