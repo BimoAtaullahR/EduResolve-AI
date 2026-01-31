@@ -133,6 +133,8 @@ func main() {
 				}
 				c.JSON(http.StatusOK, gin.H{"suggestions": suggestions})
 			})
+
+			conversations.POST(":id/reply", inboxHandler.ReplyConversation)
 		}
 
 		//endpoint analytics
