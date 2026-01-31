@@ -2,24 +2,25 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase/firebase";
-import { ArrowLeft, Send, User, Headphones, Loader2, MessageSquare, CheckCircle, Clock } from "lucide-react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
+import { useAuth } from "@/app/context/AuthContext";
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp } from "firebase/firestore";
+import { getApp } from "firebase/app";
+import { ArrowLeft, Send, User, Headphones, Loader2, MessageSquare, CheckCircle } from "lucide-react";
 
 interface Message {
   sender: string;
   text: string;
-  timestamp: string;
+  timestamp: { seconds: number; nanoseconds: number } | Date | string;
 }
 
 interface Conversation {
   id: string;
   student_name: string;
+  student_id: string;
   status: string;
   messages: Message[];
-  created_at: string;
-  updated_at: string;
+  created_at: { seconds: number; nanoseconds: number } | Date | string;
+  updated_at: { seconds: number; nanoseconds: number } | Date | string;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -31,6 +32,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 export default function StudentConversationPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const conversationId = params.id as string;
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -41,10 +43,10 @@ export default function StudentConversationPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (conversationId) {
+    if (conversationId && user?.uid) {
       loadConversation();
     }
-  }, [conversationId]);
+  }, [conversationId, user?.uid]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -54,74 +56,99 @@ export default function StudentConversationPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await auth?.currentUser?.getIdToken();
-      if (!token) {
+      if (!user?.uid) {
         setError("Silakan login terlebih dahulu");
         setIsLoading(false);
         return;
       }
 
-      const response = await fetch(`${API_URL}/student/conversations/${conversationId}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const db = getFirestore(getApp());
+      const docRef = doc(db, "conversations", conversationId);
+      const docSnap = await getDoc(docRef);
 
-      if (response.ok) {
-        const data = await response.json();
-        setConversation(data);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as Omit<Conversation, "id">;
+
+        // Verify ownership
+        if (data.student_id !== user.uid) {
+          setError("Anda tidak memiliki akses ke percakapan ini");
+          setIsLoading(false);
+          return;
+        }
+
+        setConversation({
+          id: docSnap.id,
+          ...data,
+        });
       } else {
-        const data = await response.json();
-        setError(data.error || "Gagal memuat percakapan");
+        setError("Percakapan tidak ditemukan");
       }
     } catch (err) {
       console.error("Error loading conversation:", err);
-      setError("Koneksi gagal");
+      setError("Gagal memuat percakapan");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSendReply = async () => {
-    if (!replyText.trim() || isSending) return;
+    if (!replyText.trim() || isSending || !user?.uid) return;
 
     setIsSending(true);
     try {
-      const token = await auth?.currentUser?.getIdToken();
-      const response = await fetch(`${API_URL}/student/conversations/${conversationId}/reply`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ text: replyText }),
+      const db = getFirestore(getApp());
+      const docRef = doc(db, "conversations", conversationId);
+
+      // Add new message using arrayUnion
+      const newMessage = {
+        sender: "student",
+        text: replyText,
+        timestamp: Timestamp.now(),
+      };
+
+      await updateDoc(docRef, {
+        messages: arrayUnion(newMessage),
+        last_message: replyText,
+        updated_at: Timestamp.now(),
       });
 
-      if (response.ok) {
-        setReplyText("");
-        await loadConversation();
-      } else {
-        const data = await response.json();
-        alert(data.error || "Gagal mengirim pesan");
-      }
+      setReplyText("");
+      await loadConversation();
     } catch (err) {
       console.error("Error sending reply:", err);
-      alert("Koneksi gagal");
+      alert("Gagal mengirim pesan");
     } finally {
       setIsSending(false);
     }
   };
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: { seconds: number; nanoseconds: number } | Date | string) => {
     if (!timestamp) return "";
-    const date = new Date(timestamp);
+
+    let date: Date;
+    if (typeof timestamp === "object" && "seconds" in timestamp) {
+      date = new Date(timestamp.seconds * 1000);
+    } else if (typeof timestamp === "string") {
+      date = new Date(timestamp);
+    } else {
+      date = timestamp as Date;
+    }
+
     return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const formatDate = (timestamp: string) => {
+  const formatDate = (timestamp: { seconds: number; nanoseconds: number } | Date | string) => {
     if (!timestamp) return "";
-    const date = new Date(timestamp);
+
+    let date: Date;
+    if (typeof timestamp === "object" && "seconds" in timestamp) {
+      date = new Date(timestamp.seconds * 1000);
+    } else if (typeof timestamp === "string") {
+      date = new Date(timestamp);
+    } else {
+      date = timestamp as Date;
+    }
+
     return date.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
   };
 
@@ -169,7 +196,7 @@ export default function StudentConversationPage() {
   }
 
   const status = statusLabels[conversation.status] || statusLabels.open;
-  const messageGroups = groupMessagesByDate(conversation.messages);
+  const messageGroups = groupMessagesByDate(conversation.messages || []);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -202,37 +229,41 @@ export default function StudentConversationPage() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-          {messageGroups.map((group, groupIndex) => (
-            <div key={groupIndex}>
-              {/* Date Divider */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex-1 h-px bg-gray-300" />
-                <span className="text-xs text-gray-500 font-medium">{group.date}</span>
-                <div className="flex-1 h-px bg-gray-300" />
-              </div>
+          {messageGroups.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">Belum ada pesan</div>
+          ) : (
+            messageGroups.map((group, groupIndex) => (
+              <div key={groupIndex}>
+                {/* Date Divider */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-1 h-px bg-gray-300" />
+                  <span className="text-xs text-gray-500 font-medium">{group.date}</span>
+                  <div className="flex-1 h-px bg-gray-300" />
+                </div>
 
-              {/* Messages */}
-              <div className="space-y-3">
-                {group.messages.map((msg, msgIndex) => (
-                  <div key={msgIndex} className={`flex ${msg.sender === "student" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] ${msg.sender === "student" ? "order-1" : ""}`}>
-                      <div className={`flex items-end gap-2 ${msg.sender === "student" ? "flex-row-reverse" : ""}`}>
-                        {msg.sender === "support" && (
-                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shrink-0">
-                            <Headphones className="w-4 h-4 text-white" />
+                {/* Messages */}
+                <div className="space-y-3">
+                  {group.messages.map((msg, msgIndex) => (
+                    <div key={msgIndex} className={`flex ${msg.sender === "student" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[80%] ${msg.sender === "student" ? "order-1" : ""}`}>
+                        <div className={`flex items-end gap-2 ${msg.sender === "student" ? "flex-row-reverse" : ""}`}>
+                          {msg.sender === "support" && (
+                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shrink-0">
+                              <Headphones className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          <div className={`px-4 py-3 rounded-2xl ${msg.sender === "student" ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-gray-800 rounded-bl-md shadow-sm"}`}>
+                            <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                            <p className={`text-[10px] mt-1 ${msg.sender === "student" ? "text-blue-200" : "text-gray-400"}`}>{formatTime(msg.timestamp)}</p>
                           </div>
-                        )}
-                        <div className={`px-4 py-3 rounded-2xl ${msg.sender === "student" ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-gray-800 rounded-bl-md shadow-sm"}`}>
-                          <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                          <p className={`text-[10px] mt-1 ${msg.sender === "student" ? "text-blue-200" : "text-gray-400"}`}>{formatTime(msg.timestamp)}</p>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>

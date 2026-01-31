@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { auth } from "@/lib/firebase/firebase";
 import { useAuth } from "@/app/context/AuthContext";
+import { getFirestore, collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { getApp } from "firebase/app";
 import { MessageSquare, Clock, CheckCircle, AlertCircle, Loader2, ChevronRight, Inbox, Plus, BookOpen, CreditCard, Settings, HelpCircle } from "lucide-react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
 
 interface AIAnalysis {
   priority_score: number;
@@ -18,18 +18,19 @@ interface AIAnalysis {
 interface Message {
   sender: string;
   text: string;
-  timestamp: string;
+  timestamp: { seconds: number; nanoseconds: number } | Date | string;
 }
 
 interface Conversation {
   id: string;
   student_name: string;
+  student_id: string;
   last_message: string;
   status: string;
   messages: Message[];
   ai_analysis: AIAnalysis;
-  created_at: string;
-  updated_at: string;
+  created_at: { seconds: number; nanoseconds: number } | Date | string;
+  updated_at: { seconds: number; nanoseconds: number } | Date | string;
 }
 
 const statusConfig: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
@@ -48,51 +49,64 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 export default function StudentInboxPage() {
-  const { userProfile } = useAuth();
+  const { userProfile, user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadConversations();
-  }, []);
+    if (user?.uid) {
+      loadConversations();
+    }
+  }, [user?.uid]);
 
   const loadConversations = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await auth?.currentUser?.getIdToken();
-      if (!token) {
+      if (!user?.uid) {
         setError("Silakan login terlebih dahulu");
         setIsLoading(false);
         return;
       }
 
-      const response = await fetch(`${API_URL}/student/conversations`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      // Query Firestore directly from client
+      const db = getFirestore(getApp());
+      const conversationsRef = collection(db, "conversations");
+      const q = query(conversationsRef, where("student_id", "==", user.uid), orderBy("updated_at", "desc"));
+
+      const querySnapshot = await getDocs(q);
+      const convList: Conversation[] = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data() as Omit<Conversation, "id">;
+        convList.push({
+          id: doc.id,
+          ...data,
+        });
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setConversations(data.conversations || []);
-      } else {
-        const data = await response.json();
-        setError(data.error || "Gagal memuat pesan");
-      }
+      setConversations(convList);
     } catch (err) {
       console.error("Error loading conversations:", err);
-      setError("Koneksi gagal");
+      setError("Gagal memuat riwayat keluhan. Pastikan Anda sudah login.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatTimeAgo = (dateString: string): string => {
-    if (!dateString) return "—";
-    const date = new Date(dateString);
+  const formatTimeAgo = (timestamp: { seconds: number; nanoseconds: number } | Date | string): string => {
+    if (!timestamp) return "—";
+
+    let date: Date;
+    if (typeof timestamp === "object" && "seconds" in timestamp) {
+      date = new Date(timestamp.seconds * 1000);
+    } else if (typeof timestamp === "string") {
+      date = new Date(timestamp);
+    } else {
+      date = timestamp as Date;
+    }
+
     const now = new Date();
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
     if (diff < 60) return "Baru saja";
