@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase/firebase";
-import { ArrowLeft, Send, User, Headphones, Clock, AlertTriangle, Sparkles, Loader2, CheckCircle, MessageSquare } from "lucide-react";
+import { ArrowLeft, Send, User, Headphones, Clock, AlertTriangle, Sparkles, Loader2, CheckCircle, MessageSquare, Wand2, RefreshCw } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
 
@@ -51,14 +51,6 @@ const priorityColors: Record<number, string> = {
   10: "bg-red-300 text-red-900",
 };
 
-const sentimentEmoji: Record<string, string> = {
-  positive: "😊",
-  neutral: "😐",
-  negative: "😠",
-  anxious: "😰",
-  frustrated: "😤",
-};
-
 export default function ConversationDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -71,17 +63,27 @@ export default function ConversationDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const lastSuggestionTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (conversationId) {
       loadConversation();
-      loadSuggestions();
     }
   }, [conversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation?.messages]);
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(() => setCooldownSeconds(cooldownSeconds - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldownSeconds]);
 
   const loadConversation = async () => {
     setIsLoading(true);
@@ -104,22 +106,58 @@ export default function ConversationDetailPage() {
     }
   };
 
+  const COOLDOWN_DURATION = 60; // 60 seconds cooldown
+
   const loadSuggestions = async () => {
+    // Check if already loading
+    if (isLoadingSuggestions) {
+      console.log("Already loading suggestions, skipping...");
+      return;
+    }
+
+    // Check cooldown
+    const now = Date.now();
+    const timeSinceLastRequest = (now - lastSuggestionTimeRef.current) / 1000;
+    if (timeSinceLastRequest < COOLDOWN_DURATION && lastSuggestionTimeRef.current > 0) {
+      const remainingCooldown = Math.ceil(COOLDOWN_DURATION - timeSinceLastRequest);
+      alert(`Tunggu ${remainingCooldown} detik sebelum generate AI lagi (rate limit protection)`);
+      return;
+    }
+
     setIsLoadingSuggestions(true);
+    setSuggestions([]);
     try {
       const token = await auth?.currentUser?.getIdToken();
+      if (!token) {
+        console.error("No auth token available");
+        alert("Silakan login terlebih dahulu");
+        setIsLoadingSuggestions(false);
+        return;
+      }
+
+      console.log("Fetching suggestions for conversation:", conversationId);
       const response = await fetch(`${API_URL}/conversations/${conversationId}/suggestions`, {
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
+          Authorization: `Bearer ${token}`,
         },
       });
+
+      const data = await response.json();
+      console.log("Suggestions response:", data);
+
       if (response.ok) {
-        const data = await response.json();
         setSuggestions(data.suggestions || []);
+        if (!data.suggestions || data.suggestions.length === 0) {
+          console.log("No suggestions returned from AI");
+        }
+      } else {
+        console.error("Failed to load suggestions:", data.error);
+        alert(`Gagal generate AI response: ${data.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error loading suggestions:", error);
+      alert("Koneksi ke server gagal");
     } finally {
       setIsLoadingSuggestions(false);
     }
@@ -129,6 +167,7 @@ export default function ConversationDetailPage() {
     if (!replyText.trim() || isSending) return;
 
     setIsSending(true);
+    setSendSuccess(false);
     try {
       const token = await auth?.currentUser?.getIdToken();
       const response = await fetch(`${API_URL}/conversations/${conversationId}/reply`, {
@@ -142,10 +181,16 @@ export default function ConversationDetailPage() {
 
       if (response.ok) {
         setReplyText("");
+        setSendSuccess(true);
         await loadConversation();
+        setTimeout(() => setSendSuccess(false), 3000);
+      } else {
+        const data = await response.json();
+        alert(data.error || "Gagal mengirim pesan");
       }
     } catch (error) {
       console.error("Error sending reply:", error);
+      alert("Gagal mengirim pesan");
     } finally {
       setIsSending(false);
     }
@@ -214,13 +259,13 @@ export default function ConversationDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${priorityColors[priority]}`}>Priority {priority}/10</span>
-              <span className="text-xl">{sentimentEmoji[conversation.ai_analysis?.sentiment] || "😐"}</span>
             </div>
           </div>
         </div>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {conversation.messages?.length === 0 && <div className="text-center py-8 text-slate-400">Belum ada pesan</div>}
           {conversation.messages?.map((msg, index) => (
             <div key={index} className={`flex ${msg.sender === "support" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[70%] ${msg.sender === "support" ? "order-1" : ""}`}>
@@ -248,11 +293,27 @@ export default function ConversationDetailPage() {
 
         {/* Reply Input */}
         <div className="bg-white border-t border-slate-200 p-4">
+          {/* Success Message */}
+          {sendSuccess && (
+            <div className="mb-3 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Pesan berhasil terkirim!
+            </div>
+          )}
+
+          {/* Generate AI Button */}
+          <div className="flex gap-2 mb-3">
+            <button onClick={loadSuggestions} disabled={isLoadingSuggestions} className="flex items-center gap-2 px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl font-medium transition-colors disabled:opacity-50">
+              {isLoadingSuggestions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              {isLoadingSuggestions ? "Generating..." : "Generate AI Response"}
+            </button>
+          </div>
+
           <div className="flex gap-3">
             <textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Type your reply..."
+              placeholder="Ketik balasan..."
               rows={2}
               className="flex-1 px-4 py-3 border border-slate-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800"
               onKeyDown={(e) => {
@@ -268,7 +329,7 @@ export default function ConversationDetailPage() {
               className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              Send
+              Kirim
             </button>
           </div>
         </div>
@@ -297,7 +358,7 @@ export default function ConversationDetailPage() {
                 <div className="bg-slate-50 rounded-lg p-3">
                   <p className="text-xs text-slate-500 mb-1">Sentiment</p>
                   <p className="text-sm font-medium capitalize">
-                    {sentimentEmoji[conversation.ai_analysis.sentiment]} {conversation.ai_analysis.sentiment}
+                    {[conversation.ai_analysis.sentiment]} {conversation.ai_analysis.sentiment}
                   </p>
                 </div>
               </div>
@@ -324,8 +385,8 @@ export default function ConversationDetailPage() {
               <MessageSquare className="w-5 h-5 text-blue-500" />
               <h2 className="font-semibold text-slate-800">AI Suggestions</h2>
             </div>
-            <button onClick={loadSuggestions} disabled={isLoadingSuggestions} className="text-xs text-blue-500 hover:text-blue-600">
-              {isLoadingSuggestions ? "Loading..." : "Refresh"}
+            <button onClick={loadSuggestions} disabled={isLoadingSuggestions} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50" title="Refresh Suggestions">
+              <RefreshCw className={`w-4 h-4 text-slate-500 ${isLoadingSuggestions ? "animate-spin" : ""}`} />
             </button>
           </div>
 
@@ -337,10 +398,10 @@ export default function ConversationDetailPage() {
           ) : suggestions.length > 0 ? (
             <div className="space-y-3">
               {suggestions.map((suggestion, index) => (
-                <div key={index} className="bg-slate-50 rounded-xl p-4 hover:bg-slate-100 transition-colors cursor-pointer group" onClick={() => useSuggestion(suggestion.content)}>
+                <div key={index} className="bg-slate-50 rounded-xl p-4 hover:bg-blue-50 hover:border-blue-200 transition-colors cursor-pointer group border border-transparent" onClick={() => useSuggestion(suggestion.content)}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">{suggestion.tone}</span>
-                    <CheckCircle className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                    <span className="text-xs text-slate-400 group-hover:text-blue-500">Klik untuk pakai</span>
                   </div>
                   <p className="text-sm text-slate-700 line-clamp-3">{suggestion.content}</p>
                 </div>
@@ -349,7 +410,11 @@ export default function ConversationDetailPage() {
           ) : (
             <div className="text-center py-6">
               <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm text-slate-500">No suggestions available</p>
+              <p className="text-sm text-slate-500 mb-3">Belum ada suggestions</p>
+              <button onClick={loadSuggestions} className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 mx-auto">
+                <Wand2 className="w-4 h-4" />
+                Generate AI Response
+              </button>
             </div>
           )}
         </div>
