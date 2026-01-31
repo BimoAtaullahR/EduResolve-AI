@@ -11,6 +11,7 @@
   --color-white-blue: #ebf2ff;
   --color-text-dark: #1f2937;
   --color-text-light: #6b7280;
+  --color-great-blue: #e7f0ff;
 }
 
 :root {
@@ -22,6 +23,7 @@
   --color-text-light: #6b7280;
   --color-background: #ffffff;
   --color-background-dark: #20578f;
+  --color-great-blue: #e7f0ff;
 }
 
 html {

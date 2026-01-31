@@ -82,7 +82,7 @@ func main() {
 	//Setup middleware
 	authMiddleware := middleware.AuthMiddleware(authClient)
 	studentGuard := middleware.RequireRole("customer", firestoreClient)
-	supportGuard := middleware.RequireRole("customer_suppport", firestoreClient)
+	supportGuard := middleware.RequireRole("customer_support", firestoreClient)
 
 	//grouping API sesuai contract
 	v1 := r.Group("/api/v1")

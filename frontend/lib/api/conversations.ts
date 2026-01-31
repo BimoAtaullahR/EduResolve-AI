@@ -118,12 +118,22 @@ export async function addMessage(
 
 /**
  * Get all conversations (for agent or customer)
+ * @param sortBy - Field to sort by (priority_score, updated_at)
+ * @param order - Sort order (asc, desc)
  */
-export async function getConversations(): Promise<ConversationsResponse> {
+export async function getConversations(sortBy: string = "priority_score", order: string = "desc"): Promise<ConversationsResponse> {
   try {
-    const response = await fetch(`${API_URL}/conversations`, {
+    // Get Firebase ID token for authentication
+    const { auth } = await import("@/lib/firebase/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+
+    const params = new URLSearchParams({ sort_by: sortBy, order });
+    const response = await fetch(`${API_URL}/conversations?${params}`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
     });
 
     const text = await response.text();

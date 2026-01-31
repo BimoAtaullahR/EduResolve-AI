@@ -68,7 +68,7 @@ const coursesWithCurriculum: Record<
         ],
       },
     ],
-    instructor: {
+    instructor: { 
       name: "Sarah Johnson",
       title: "Senior Product Designer at Google",
       bio: "With over 10 years of experience in UI/UX design, Sarah has worked with Fortune 500 companies and startups alike, creating user experiences that delight millions of users.",

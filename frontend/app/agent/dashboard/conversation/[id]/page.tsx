@@ -1,62 +1,82 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/AuthContext";
-import { getConversation, getSuggestions, addMessage, assignAgent, updateStatus, type Conversation, type ResponseSuggestion } from "@/lib/api";
-import { FiArrowLeft, FiSend, FiCopy, FiCheck, FiClock, FiAlertCircle, FiAlertTriangle, FiZap, FiBook, FiCreditCard, FiLock } from "react-icons/fi";
+import { auth } from "@/lib/firebase/firebase";
+import { ArrowLeft, Send, User, Headphones, Clock, AlertTriangle, Sparkles, Loader2, CheckCircle, MessageSquare } from "lucide-react";
 
-// Enhanced urgency color mapping (1-10 scale)
-const getUrgencyStyle = (score: number): { bg: string; text: string; border: string; icon: React.ReactElement; label: string } => {
-  if (score >= 9) return { bg: "bg-red-100", text: "text-red-900", border: "border-red-300", icon: <FiAlertTriangle className="w-4 h-4" />, label: "CRITICAL" };
-  if (score >= 7) return { bg: "bg-orange-100", text: "text-orange-900", border: "border-orange-300", icon: <FiZap className="w-4 h-4" />, label: "HIGH" };
-  if (score >= 4) return { bg: "bg-yellow-100", text: "text-yellow-900", border: "border-yellow-300", icon: <FiAlertCircle className="w-4 h-4" />, label: "MEDIUM" };
-  return { bg: "bg-green-100", text: "text-green-900", border: "border-green-300", icon: <FiCheck className="w-4 h-4" />, label: "LOW" };
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
+
+interface Message {
+  sender: string;
+  text: string;
+  timestamp: string;
+}
+
+interface AIAnalysis {
+  summary: string;
+  category: string;
+  priority_score: number;
+  reason: string;
+  sentiment: string;
+  is_processed: boolean;
+}
+
+interface Conversation {
+  id: string;
+  student_name: string;
+  student_email: string;
+  status: string;
+  messages: Message[];
+  ai_analysis: AIAnalysis;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Suggestion {
+  tone: string;
+  content: string;
+}
+
+const priorityColors: Record<number, string> = {
+  1: "bg-slate-100 text-slate-600",
+  2: "bg-slate-100 text-slate-600",
+  3: "bg-emerald-100 text-emerald-700",
+  4: "bg-lime-100 text-lime-700",
+  5: "bg-yellow-100 text-yellow-700",
+  6: "bg-amber-100 text-amber-700",
+  7: "bg-orange-100 text-orange-700",
+  8: "bg-red-100 text-red-700",
+  9: "bg-red-200 text-red-800",
+  10: "bg-red-300 text-red-900",
 };
 
-// Category icons and colors for EdTech
-const getCategoryStyle = (category: string): { icon: React.ReactElement; color: string } => {
-  const lower = category.toLowerCase();
-  if (lower.includes("ujian") || lower.includes("exam")) return { icon: <FiBook className="w-4 h-4" />, color: "purple" };
-  if (lower.includes("akses") || lower.includes("access")) return { icon: <FiLock className="w-4 h-4" />, color: "blue" };
-  if (lower.includes("pembayaran") || lower.includes("payment")) return { icon: <FiCreditCard className="w-4 h-4" />, color: "green" };
-  return { icon: <FiAlertCircle className="w-4 h-4" />, color: "gray" };
-};
-
-// Sentiment emoji mapping
-const getSentimentEmoji = (sentiment: string): string => {
-  const lower = sentiment.toLowerCase();
-  if (lower.includes("positive") || lower.includes("happy")) return "😊";
-  if (lower.includes("anxious") || lower.includes("worried")) return "😰";
-  if (lower.includes("angry") || lower.includes("frustrated")) return "😠";
-  if (lower.includes("sad")) return "😔";
-  return "😐";
-};
-
-const sentimentColors: Record<string, string> = {
-  positive: "bg-green-100 text-green-700 border-green-200",
-  neutral: "bg-gray-100 text-gray-700 border-gray-200",
-  negative: "bg-red-100 text-red-700 border-red-200",
-  anxious: "bg-orange-100 text-orange-700 border-orange-200",
+const sentimentEmoji: Record<string, string> = {
+  positive: "😊",
+  neutral: "😐",
+  negative: "😠",
+  anxious: "😰",
+  frustrated: "😤",
 };
 
 export default function ConversationDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { userProfile, user } = useAuth();
   const conversationId = params.id as string;
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [suggestions, setSuggestions] = useState<ResponseSuggestion[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [replyText, setReplyText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    loadConversation();
+    if (conversationId) {
+      loadConversation();
+      loadSuggestions();
+    }
   }, [conversationId]);
 
   useEffect(() => {
@@ -66,9 +86,16 @@ export default function ConversationDetailPage() {
   const loadConversation = async () => {
     setIsLoading(true);
     try {
-      const result = await getConversation(conversationId);
-      if (result.success && result.data?.conversation) {
-        setConversation(result.data.conversation);
+      const token = await auth?.currentUser?.getIdToken();
+      const response = await fetch(`${API_URL}/conversations/${conversationId}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setConversation(data);
       }
     } catch (error) {
       console.error("Error loading conversation:", error);
@@ -80,9 +107,16 @@ export default function ConversationDetailPage() {
   const loadSuggestions = async () => {
     setIsLoadingSuggestions(true);
     try {
-      const result = await getSuggestions(conversationId);
-      if (result.success && result.data?.suggestions) {
-        setSuggestions(result.data.suggestions);
+      const token = await auth?.currentUser?.getIdToken();
+      const response = await fetch(`${API_URL}/conversations/${conversationId}/suggestions`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestions(data.suggestions || []);
       }
     } catch (error) {
       console.error("Error loading suggestions:", error);
@@ -91,128 +125,120 @@ export default function ConversationDetailPage() {
     }
   };
 
-  const handleAssign = async () => {
-    if (!user || !userProfile) return;
-    try {
-      await assignAgent(conversationId, {
-        agent_uid: user.uid,
-        agent_name: userProfile.displayName || user.email || "Agent",
-      });
-      loadConversation();
-    } catch (error) {
-      console.error("Error assigning:", error);
-    }
-  };
-
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !user) return;
+  const handleSendReply = async () => {
+    if (!replyText.trim() || isSending) return;
 
     setIsSending(true);
     try {
-      await addMessage(conversationId, {
-        sender_uid: user.uid,
-        sender_type: "agent",
-        text: inputMessage,
+      const token = await auth?.currentUser?.getIdToken();
+      const response = await fetch(`${API_URL}/conversations/${conversationId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ text: replyText }),
       });
-      setInputMessage("");
-      loadConversation();
+
+      if (response.ok) {
+        setReplyText("");
+        await loadConversation();
+      }
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Error sending reply:", error);
     } finally {
       setIsSending(false);
     }
   };
 
-  const handleResolve = async () => {
-    try {
-      await updateStatus(conversationId, "resolved");
-      loadConversation();
-    } catch (error) {
-      console.error("Error resolving:", error);
-    }
-  };
-
-  const copyToClipboard = (text: string, index: number) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  const useSuggestion = (text: string) => {
-    setInputMessage(text);
+  const useSuggestion = (content: string) => {
+    setReplyText(content);
   };
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const formatDate = (timestamp: string) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
   };
 
   if (isLoading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading conversation...</div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-4" />
+          <p className="text-slate-500">Loading conversation...</p>
+        </div>
       </div>
     );
   }
 
   if (!conversation) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Conversation not found</div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">Conversation not found</p>
+        </div>
       </div>
     );
   }
 
-  const ai = conversation.ai_analysis;
+  const priority = conversation.ai_analysis?.priority_score || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-slate-50 flex">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+        <div className="bg-white border-b border-slate-200 px-6 py-4">
           <div className="flex items-center gap-4">
-            <button onClick={() => router.push("/agent/dashboard")} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <FiArrowLeft size={20} />
+            <button onClick={() => router.push("/agent/dashboard")} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
-            <div>
-              <h1 className="font-semibold text-gray-900">{conversation.customer_name || "Customer"}</h1>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="font-semibold text-slate-800">{conversation.student_name || "Unknown Student"}</h1>
+                  <p className="text-sm text-slate-500">{conversation.student_email}</p>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {conversation.status !== "resolved" && !conversation.agent_uid && (
-              <button onClick={handleAssign} className="px-4 py-2 bg-[#52abff] hover:bg-[#20578f] text-white rounded-lg text-sm font-medium transition-colors">
-                Claim Ticket
-              </button>
-            )}
-            {conversation.status !== "resolved" && conversation.agent_uid && (
-              <button onClick={handleResolve} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
-                Mark Resolved
-              </button>
-            )}
-            <span
-              className={`px-3 py-1 text-xs font-medium rounded-full capitalize ${
-                conversation.status === "open" ? "bg-yellow-100 text-yellow-800" : conversation.status === "in_progress" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
-              }`}
-            >
-              {conversation.status.replace("_", " ")}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${priorityColors[priority]}`}>Priority {priority}/10</span>
+              <span className="text-xl">{sentimentEmoji[conversation.ai_analysis?.sentiment] || "😐"}</span>
+            </div>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {conversation.messages?.map((message, idx) => (
-            <div key={idx} className={`flex ${message.sender === "agent" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[70%] ${message.sender === "agent" ? "order-2" : ""}`}>
-                <div className={`rounded-2xl px-4 py-3 ${message.sender === "agent" ? "bg-[#52abff] text-white rounded-br-sm" : "bg-white text-gray-900 border border-gray-200 rounded-bl-sm"}`}>
-                  <p className="text-sm leading-relaxed">{message.text}</p>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {conversation.messages?.map((msg, index) => (
+            <div key={index} className={`flex ${msg.sender === "support" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[70%] ${msg.sender === "support" ? "order-1" : ""}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  {msg.sender === "student" && (
+                    <div className="w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center">
+                      <User className="w-3 h-3 text-slate-600" />
+                    </div>
+                  )}
+                  <span className="text-xs text-slate-500">{formatTime(msg.timestamp)}</span>
+                  {msg.sender === "support" && (
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <Headphones className="w-3 h-3 text-white" />
+                    </div>
+                  )}
                 </div>
-                <div className={`flex items-center gap-2 mt-1 text-xs text-gray-400 ${message.sender === "agent" ? "justify-end" : ""}`}>
-                  <FiClock size={12} />
-                  <span>{formatTime(message.timestamp)}</span>
+                <div className={`px-4 py-3 rounded-2xl ${msg.sender === "support" ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-slate-800 rounded-bl-md shadow-sm border border-slate-100"}`}>
+                  <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                 </div>
               </div>
             </div>
@@ -220,127 +246,135 @@ export default function ConversationDetailPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <div className="bg-white border-t border-gray-200 p-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+        {/* Reply Input */}
+        <div className="bg-white border-t border-slate-200 p-4">
+          <div className="flex gap-3">
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
               placeholder="Type your reply..."
-              disabled={isSending || conversation.status === "resolved"}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-[#52abff] focus:ring-2 focus:ring-[#52abff]/20 disabled:bg-gray-100"
+              rows={2}
+              className="flex-1 px-4 py-3 border border-slate-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendReply();
+                }
+              }}
             />
             <button
-              onClick={handleSendMessage}
-              disabled={!inputMessage.trim() || isSending || conversation.status === "resolved"}
-              className="px-6 py-3 bg-[#52abff] hover:bg-[#20578f] disabled:bg-gray-300 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+              onClick={handleSendReply}
+              disabled={!replyText.trim() || isSending}
+              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
-              <FiSend size={18} />
+              {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               Send
             </button>
           </div>
         </div>
       </div>
 
-      {/* AI Panel Sidebar */}
-      <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-            <span className="text-xl">🤖</span> AI Analysis
-          </h2>
+      {/* Right Sidebar - AI Analysis & Suggestions */}
+      <div className="w-96 bg-white border-l border-slate-200 overflow-y-auto">
+        {/* AI Analysis */}
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-purple-500" />
+            <h2 className="font-semibold text-slate-800">AI Analysis</h2>
+          </div>
+
+          {conversation.ai_analysis?.is_processed ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Summary</p>
+                <p className="text-sm text-slate-700">{conversation.ai_analysis.summary}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-xs text-slate-500 mb-1">Category</p>
+                  <p className="text-sm font-medium text-purple-700">{conversation.ai_analysis.category}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-xs text-slate-500 mb-1">Sentiment</p>
+                  <p className="text-sm font-medium capitalize">
+                    {sentimentEmoji[conversation.ai_analysis.sentiment]} {conversation.ai_analysis.sentiment}
+                  </p>
+                </div>
+              </div>
+              <div className="bg-amber-50 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <p className="text-xs text-amber-700 font-medium">Priority Reason</p>
+                </div>
+                <p className="text-sm text-amber-800">{conversation.ai_analysis.reason}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Loader2 className="w-6 h-6 text-purple-500 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-slate-500">AI processing...</p>
+            </div>
+          )}
         </div>
 
-        {ai?.is_processed ? (
-          <div className="p-4 space-y-4">
-            {/* Summary */}
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-              <h3 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
-                <FiAlertCircle size={16} /> Summary
-              </h3>
-              <p className="text-sm text-blue-800">{ai.summary}</p>
+        {/* AI Suggestions */}
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-blue-500" />
+              <h2 className="font-semibold text-slate-800">AI Suggestions</h2>
             </div>
+            <button onClick={loadSuggestions} disabled={isLoadingSuggestions} className="text-xs text-blue-500 hover:text-blue-600">
+              {isLoadingSuggestions ? "Loading..." : "Refresh"}
+            </button>
+          </div>
 
-            {/* Priority & Sentiment - Enhanced with Icons*/}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Urgency Badge */}
-              <div className="relative">
-                <div className={`${getUrgencyStyle(ai.priority_score).bg} ${getUrgencyStyle(ai.priority_score).border} border-2 rounded-xl p-4 transition-all hover:shadow-md`}>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-semibold">Urgency Level</p>
-                  <div className={`flex items-center gap-2 ${getUrgencyStyle(ai.priority_score).text}`}>
-                    {getUrgencyStyle(ai.priority_score).icon}
-                    <span className="text-2xl font-bold">{ai.priority_score}</span>
-                    <span className="text-xs font-medium">/10</span>
+          {isLoadingSuggestions ? (
+            <div className="text-center py-6">
+              <Loader2 className="w-6 h-6 text-blue-500 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-slate-500">Generating suggestions...</p>
+            </div>
+          ) : suggestions.length > 0 ? (
+            <div className="space-y-3">
+              {suggestions.map((suggestion, index) => (
+                <div key={index} className="bg-slate-50 rounded-xl p-4 hover:bg-slate-100 transition-colors cursor-pointer group" onClick={() => useSuggestion(suggestion.content)}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">{suggestion.tone}</span>
+                    <CheckCircle className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
                   </div>
-                  <p className={`text-xs mt-1 font-bold ${getUrgencyStyle(ai.priority_score).text}`}>{getUrgencyStyle(ai.priority_score).label}</p>
+                  <p className="text-sm text-slate-700 line-clamp-3">{suggestion.content}</p>
                 </div>
-              </div>
-
-              {/* Sentiment with Emoji */}
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 transition-all hover:shadow-md">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-semibold">Sentiment</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl">{getSentimentEmoji(ai.sentiment)}</span>
-                  <span className={`text-sm font-medium capitalize ${sentimentColors[ai.sentiment.toLowerCase()]} px-2 py-1 rounded-full`}>{ai.sentiment}</span>
-                </div>
-              </div>
+              ))}
             </div>
-
-            {/* Category with Icon - Enhanced */}
-            <div className={`bg-${getCategoryStyle(ai.category).color}-50 rounded-xl p-4 border-2 border-${getCategoryStyle(ai.category).color}-200 transition-all hover:shadow-md`}>
-              <p className={`text-xs text-${getCategoryStyle(ai.category).color}-600 uppercase tracking-wide mb-2 font-semibold`}>Category</p>
-              <div className={`flex items-center gap-2 text-${getCategoryStyle(ai.category).color}-900`}>
-                {getCategoryStyle(ai.category).icon}
-                <p className="font-bold text-lg">{ai.category}</p>
-              </div>
+          ) : (
+            <div className="text-center py-6">
+              <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">No suggestions available</p>
             </div>
+          )}
+        </div>
 
-            {/* Reason */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">AI Reasoning</p>
-              <p className="text-sm text-gray-700">{ai.reason}</p>
+        {/* Ticket Info */}
+        <div className="p-6 border-t border-slate-100">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-5 h-5 text-slate-500" />
+            <h2 className="font-semibold text-slate-800">Ticket Info</h2>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Created</span>
+              <span className="text-slate-700">{formatDate(conversation.created_at)}</span>
             </div>
-
-            {/* Suggestions */}
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-gray-900">Response Suggestions</h3>
-                <button onClick={loadSuggestions} disabled={isLoadingSuggestions} className="text-sm text-[#52abff] hover:text-[#20578f] font-medium disabled:text-gray-400">
-                  {isLoadingSuggestions ? "Loading..." : "Generate"}
-                </button>
-              </div>
-
-              {suggestions.length > 0 ? (
-                <div className="space-y-3">
-                  {suggestions.map((suggestion, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500 uppercase">{suggestion.tone}</span>
-                        <div className="flex gap-1">
-                          <button onClick={() => copyToClipboard(suggestion.content, idx)} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors" title="Copy">
-                            {copiedIndex === idx ? <FiCheck size={14} className="text-green-600" /> : <FiCopy size={14} className="text-gray-500" />}
-                          </button>
-                          <button onClick={() => useSuggestion(suggestion.content)} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-[#52abff]" title="Use this">
-                            <FiSend size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-700">{suggestion.content}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 text-center py-4">Click &quot;Generate&quot; to get AI-powered response suggestions</p>
-              )}
+            <div className="flex justify-between">
+              <span className="text-slate-500">Updated</span>
+              <span className="text-slate-700">{formatDate(conversation.updated_at)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Status</span>
+              <span className={`font-medium capitalize ${conversation.status === "open" ? "text-amber-600" : conversation.status === "resolved" ? "text-green-600" : "text-blue-600"}`}>{conversation.status?.replace("_", " ")}</span>
             </div>
           </div>
-        ) : (
-          <div className="p-8 text-center text-gray-500">
-            <div className="animate-spin w-8 h-8 border-2 border-[#52abff] border-t-transparent rounded-full mx-auto mb-3"></div>
-            <p>AI is analyzing...</p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
