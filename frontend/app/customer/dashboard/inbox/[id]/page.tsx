@@ -2,25 +2,33 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase/firebase";
 import { useAuth } from "@/app/context/AuthContext";
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp } from "firebase/firestore";
-import { getApp } from "firebase/app";
 import { ArrowLeft, Send, User, Headphones, Loader2, MessageSquare, CheckCircle } from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api/v1";
 
 interface Message {
   sender: string;
   text: string;
-  timestamp: { seconds: number; nanoseconds: number } | Date | string;
+  timestamp: string;
+}
+
+interface AIAnalysis {
+  summary: string;
+  category: string;
+  priority_score: number;
+  sentiment: string;
 }
 
 interface Conversation {
   id: string;
   student_name: string;
-  student_id: string;
   status: string;
   messages: Message[];
-  created_at: { seconds: number; nanoseconds: number } | Date | string;
-  updated_at: { seconds: number; nanoseconds: number } | Date | string;
+  ai_analysis: AIAnalysis;
+  created_at: string;
+  updated_at: string;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -56,64 +64,57 @@ export default function StudentConversationPage() {
     setIsLoading(true);
     setError(null);
     try {
-      if (!user?.uid) {
+      const token = await auth?.currentUser?.getIdToken();
+      if (!token) {
         setError("Silakan login terlebih dahulu");
         setIsLoading(false);
         return;
       }
 
-      const db = getFirestore(getApp());
-      const docRef = doc(db, "conversations", conversationId);
-      const docSnap = await getDoc(docRef);
+      const response = await fetch(`${API_URL}/student/conversations/${conversationId}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      if (docSnap.exists()) {
-        const data = docSnap.data() as Omit<Conversation, "id">;
-
-        // Verify ownership
-        if (data.student_id !== user.uid) {
-          setError("Anda tidak memiliki akses ke percakapan ini");
-          setIsLoading(false);
-          return;
-        }
-
-        setConversation({
-          id: docSnap.id,
-          ...data,
-        });
+      if (response.ok) {
+        const data = await response.json();
+        setConversation(data);
       } else {
-        setError("Percakapan tidak ditemukan");
+        const data = await response.json();
+        setError(data.error || "Gagal memuat percakapan");
       }
     } catch (err) {
       console.error("Error loading conversation:", err);
-      setError("Gagal memuat percakapan");
+      setError("Koneksi gagal");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSendReply = async () => {
-    if (!replyText.trim() || isSending || !user?.uid) return;
+    if (!replyText.trim() || isSending) return;
 
     setIsSending(true);
     try {
-      const db = getFirestore(getApp());
-      const docRef = doc(db, "conversations", conversationId);
-
-      // Add new message using arrayUnion
-      const newMessage = {
-        sender: "student",
-        text: replyText,
-        timestamp: Timestamp.now(),
-      };
-
-      await updateDoc(docRef, {
-        messages: arrayUnion(newMessage),
-        last_message: replyText,
-        updated_at: Timestamp.now(),
+      const token = await auth?.currentUser?.getIdToken();
+      const response = await fetch(`${API_URL}/student/conversations/${conversationId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: replyText }),
       });
 
-      setReplyText("");
-      await loadConversation();
+      if (response.ok) {
+        setReplyText("");
+        await loadConversation();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Gagal mengirim pesan");
+      }
     } catch (err) {
       console.error("Error sending reply:", err);
       alert("Gagal mengirim pesan");
@@ -122,33 +123,15 @@ export default function StudentConversationPage() {
     }
   };
 
-  const formatTime = (timestamp: { seconds: number; nanoseconds: number } | Date | string) => {
+  const formatTime = (timestamp: string) => {
     if (!timestamp) return "";
-
-    let date: Date;
-    if (typeof timestamp === "object" && "seconds" in timestamp) {
-      date = new Date(timestamp.seconds * 1000);
-    } else if (typeof timestamp === "string") {
-      date = new Date(timestamp);
-    } else {
-      date = timestamp as Date;
-    }
-
+    const date = new Date(timestamp);
     return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const formatDate = (timestamp: { seconds: number; nanoseconds: number } | Date | string) => {
+  const formatDate = (timestamp: string) => {
     if (!timestamp) return "";
-
-    let date: Date;
-    if (typeof timestamp === "object" && "seconds" in timestamp) {
-      date = new Date(timestamp.seconds * 1000);
-    } else if (typeof timestamp === "string") {
-      date = new Date(timestamp);
-    } else {
-      date = timestamp as Date;
-    }
-
+    const date = new Date(timestamp);
     return date.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
   };
 
